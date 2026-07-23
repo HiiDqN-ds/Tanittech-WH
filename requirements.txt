@@ -1,0 +1,53 @@
+# Web framework
+Flask==2.3.3
+Werkzeug==3.1.3
+Jinja2==3.1.6
+itsdangerous==2.2.0
+click==8.2.1
+blinker==1.9.0
+MarkupSafe==3.0.2
+
+# Loads variables from a local .env file into the environment (see
+# .env.example). Without this, only variables actually exported in the
+# shell/host environment are picked up — a .env file alone does nothing.
+python-dotenv==1.0.1
+
+# Database driver (pure-Python MySQL client used by db.py / seed_db.py)
+PyMySQL==1.1.1
+
+# Barcode generation
+python-barcode==0.15.1
+pillow==12.2.0
+
+# Offline OCR for the "scan invoice photo" feature (auto-fill facture form).
+# NOTE: this Python package only talks to the Tesseract OCR *binary* — it
+# does not install Tesseract itself. You must also install Tesseract on the
+# server:
+#   - Ubuntu/Debian: sudo apt-get install tesseract-ocr tesseract-ocr-deu tesseract-ocr-fra
+#   - macOS: brew install tesseract tesseract-lang
+#   - Heroku: add the "heroku-community/apt" buildpack + an Aptfile containing
+#     "tesseract-ocr", "tesseract-ocr-deu", "tesseract-ocr-fra" (see Aptfile in this repo)
+pytesseract==0.3.13
+
+# PDF support for the invoice scanner ("Rechnung fotografieren" also accepts
+# PDFs now): reads a PDF's embedded text layer directly when present (exact,
+# no OCR guessing) and falls back to rendering + OCR for scanned PDFs.
+PyMuPDF==1.24.10
+
+# Scheduled daily cash-balance job
+APScheduler==3.11.0
+
+# OpenAI (GPT) client — powers the free-text AI assistant chat
+# (/assistant/api/chat). Requires OPENAI_API_KEY to be set (see .env.example).
+openai==1.40.0
+
+# Stripe — powers real card payments at the register via a physical
+# Stripe Terminal reader (/stripe/connection_token, /stripe/create_payment_intent).
+# Requires STRIPE_SECRET_KEY (and STRIPE_LOCATION_ID for a real, non-simulated
+# reader) to be set — see .env.example. Without a key, "pay by card" is
+# simply disabled in the UI; everything else keeps working.
+stripe>=9.0.0,<13.0.0
+
+# Production WSGI server (Procfile)
+gunicorn
+

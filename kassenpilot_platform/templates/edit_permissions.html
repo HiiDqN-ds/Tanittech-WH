@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width:480px;">
+  <h2 style="margin-top:0;">Permissions — {{ target.username }}</h2>
+  <p class="muted" style="font-size:13px; margin-top:-8px;">Role: {{ target.role }}</p>
+  <form method="post">
+    <div class="perm-grid">
+      {% for key, label in capabilities %}
+      <label class="checkbox">
+        <input type="checkbox" name="{{ key }}" {% if perms.get(key) %}checked{% endif %}>
+        {{ label }}
+      </label>
+      {% endfor %}
+    </div>
+    <button class="btn" type="submit">Save permissions</button>
+    <a class="btn secondary" href="javascript:history.back()">Cancel</a>
+  </form>
+</div>
+{% endblock %}

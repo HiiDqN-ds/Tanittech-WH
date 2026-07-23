@@ -1,0 +1,332 @@
+/* =========================================================
+   Shared Data Table Enhancements
+   Applied automatically (via static/js/data-table.js) to any
+   <table class="data-table"> in the app: sorting, filtering,
+   pagination, sticky headers, responsive card layout, row
+   hover, and consistent styling for row-action buttons.
+   Uses the app's existing design tokens (see styles.css)
+   so tables keep looking native everywhere they appear.
+   ========================================================= */
+
+.dt-wrapper{
+    width:100%;
+    max-width:none;
+    margin:0 0 1rem 0;
+    padding:0;
+    display:block;
+    margin-left:0 !important;
+    margin-right:0 !important;
+}
+
+/* ---------- Toolbar (search + result count) ---------- */
+.dt-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+}
+
+.dt-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 220px;
+  flex: 0 1 320px;
+}
+
+.dt-search i {
+  position: absolute;
+  inset-inline-start: 0.7rem;
+  color: var(--ink-soft, #6c757d);
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+.dt-search-input {
+  width: 100%;
+  padding: 0.45rem 0.75rem 0.45rem 2rem;
+  border: 1px solid var(--line, #dee2e6);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--surface, #fff);
+  color: var(--ink, #10181A);
+  font-size: 0.9rem;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.dt-search-input:focus {
+  outline: none;
+  border-color: var(--brand, #12A594);
+  box-shadow: 0 0 0 3px var(--brand-soft, #E3F5F2);
+}
+
+.dt-info {
+  font-size: 0.82rem;
+  color: var(--ink-soft, #6c757d);
+  white-space: nowrap;
+}
+
+/* Hide the toolbar search box on very small tables — sorting/hover/
+   responsive still apply, it's just not needed for a handful of rows. */
+.dt-wrapper.dt-compact .dt-search { display: none; }
+
+/* ---------- Scroll container: ensures tables use full width
+   and never look like they're constrained inside a "box". ---------- */
+.dt-scroll{
+    width: 100%;
+    overflow-x: auto;
+    position: relative;
+    /* Scroll-shadow cue: subtle fades on either edge make it obvious
+       there's more content to scroll to, instead of columns just
+       silently getting cut off at the container edge. */
+    background:
+      linear-gradient(to right, var(--surface, #fff) 30%, rgba(255,255,255,0)) 0 0,
+      linear-gradient(to left, var(--surface, #fff) 30%, rgba(255,255,255,0)) 100% 0,
+      linear-gradient(to right, rgba(0,0,0,0.12), rgba(0,0,0,0)) 0 0,
+      linear-gradient(to left, rgba(0,0,0,0.12), rgba(0,0,0,0)) 100% 0;
+    background-repeat: no-repeat;
+    background-size: 32px 100%, 32px 100%, 10px 100%, 10px 100%;
+    background-attachment: local, local, scroll, scroll;
+}
+
+/* ---------- Opt-in sticky "Actions" column ----------
+   Add data-sticky-actions to a <table class="data-table"> to keep its
+   last column (usually row-action buttons) pinned to the right edge
+   while the rest of the row scrolls underneath it. */
+table[data-sticky-actions] td:last-child,
+table[data-sticky-actions] th:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background: var(--surface, #fff);
+  box-shadow: -6px 0 8px -6px rgba(0,0,0,0.18);
+}
+table[data-sticky-actions] thead th:last-child {
+  z-index: 3;
+  background: var(--paper, #f8f9fa);
+}
+table[data-sticky-actions] tbody tr.dt-row:hover td:last-child {
+  background: var(--brand-soft, #E3F5F2);
+}
+
+/* Preserve sticky headers on tall tables without switching to
+   overflow-x:visible (which can create a boxed / centered feel). */
+@media (min-width:1400px){
+    .dt-table{
+        width:100%;
+        min-width:100%;
+    }
+}
+.data-table{
+    border-collapse:separate;
+    border-spacing:0 12px;
+}
+
+.data-table thead th{
+    background:var(--surface, #fff);
+    border:none;
+    color:var(--ink-soft, #6b7280);
+    font-size:.82rem;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+}
+
+.data-table tbody tr{
+    background:var(--surface, #fff);
+    box-shadow:0 3px 10px rgba(0,0,0,.25);
+    border-radius:12px;
+    transition:.2s;
+}
+
+.data-table tbody tr:hover{
+    transform:translateY(-2px);
+    box-shadow:0 8px 20px rgba(0,0,0,.12);
+}
+
+.data-table td{
+    border:none;
+    padding:18px;
+    vertical-align:middle;
+}
+
+.data-table td:first-child{
+    border-radius:12px 0 0 12px;
+}
+
+.data-table td:last-child{
+    border-radius:0 12px 12px 0;
+}
+table.dt-table {
+  margin-bottom: 0;
+  border: none;
+}
+
+/* ---------- Sticky header ---------- */
+.dt-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--paper, #f8f9fa);
+  box-shadow: 0 1px 0 var(--line, #dee2e6);
+}
+
+/* ---------- Sorting ---------- */
+.dt-table th.dt-sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  padding-right: 1.4em !important;
+  position: sticky;
+}
+
+.dt-table th.dt-sortable:hover {
+  color: var(--brand-dark, #0B6C72);
+}
+
+.dt-table th.dt-sortable:focus-visible {
+  outline: 2px solid var(--brand, #12A594);
+  outline-offset: -2px;
+}
+
+.dt-sort-icon {
+  display: inline-block;
+  margin-inline-start: 0.35em;
+  opacity: 0.35;
+  font-size: 0.75em;
+}
+.dt-sort-icon::after { content: "\2195"; } /* ↕ */
+.dt-sort-asc .dt-sort-icon { opacity: 1; color: var(--brand, #12A594); }
+.dt-sort-asc .dt-sort-icon::after { content: "\2191"; } /* ↑ */
+.dt-sort-desc .dt-sort-icon { opacity: 1; color: var(--brand, #12A594); }
+.dt-sort-desc .dt-sort-icon::after { content: "\2193"; } /* ↓ */
+
+/* ---------- Row hover ---------- */
+.dt-table tbody tr.dt-row {
+  transition: background-color .12s ease;
+}
+.dt-table tbody tr.dt-row:hover {
+  background-color: var(--brand-soft, #E3F5F2);
+}
+
+/* ---------- Row actions ---------- */
+.dt-table td.dt-actions,
+.dt-table td:last-child:has(.btn) {
+  white-space: nowrap;
+}
+.dt-table tbody tr.dt-row .btn {
+  opacity: 0.85;
+  transition: opacity .12s ease, transform .12s ease;
+}
+.dt-table tbody tr.dt-row:hover .btn {
+  opacity: 1;
+}
+.dt-table tbody tr.dt-row .btn:hover {
+  transform: translateY(-1px);
+}
+
+.dt-empty-row td {
+  text-align: center;
+  padding: 2rem 1rem !important;
+  color: var(--ink-soft, #6c757d);
+}
+
+/* ---------- Pagination ---------- */
+.dt-pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.dt-pager-btn {
+  min-width: 2.1rem;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--line, #dee2e6);
+  background: var(--surface, #fff);
+  color: var(--ink, #10181A);
+  border-radius: var(--radius-sm, 8px);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color .12s ease, border-color .12s ease;
+}
+
+.dt-pager-btn:hover:not(:disabled) {
+  border-color: var(--brand, #12A594);
+}
+
+.dt-pager-btn.active {
+  background: var(--brand, #12A594);
+  border-color: var(--brand, #12A594);
+  color: #fff;
+  font-weight: 600;
+}
+
+.dt-pager-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   Responsive layout: below 768px, tables collapse into
+   stacked "cards" — each row becomes a block, each cell
+   becomes a labeled line using the column header as a label.
+   ========================================================= */
+@media (max-width: 768px) {
+  .dt-scroll { max-height: none; overflow: visible; border: none; background: none; }
+
+  table[data-sticky-actions] td:last-child,
+  table[data-sticky-actions] th:last-child {
+    position: static;
+    box-shadow: none;
+  }
+
+  .dt-table thead { display: none; }
+
+  .dt-table, .dt-table tbody { display: block; width: 100%; }
+
+  .dt-table tr.dt-row {
+    display: block;
+    width: 100%;
+    margin-bottom: 0.85rem;
+    border: 1px solid var(--line, #dee2e6);
+    border-radius: var(--radius, 14px);
+    padding: 0.4rem 0.75rem;
+    background: var(--surface, #fff);
+  }
+
+  .dt-table tr.dt-row:hover { background: var(--surface, #fff); }
+
+  .dt-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    text-align: end;
+    border: none !important;
+    border-bottom: 1px solid var(--line, #f0f0f0) !important;
+    padding: 0.5rem 0 !important;
+  }
+
+  .dt-table td:last-child { border-bottom: none !important; }
+
+  .dt-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ink-soft, #6c757d);
+    text-align: start;
+    margin-inline-end: auto;
+  }
+
+  .dt-table td[data-label=""]::before,
+  .dt-table td:not([data-label])::before { content: none; }
+
+  .dt-toolbar { flex-direction: column; align-items: stretch; }
+  .dt-search { flex-basis: auto; }
+}

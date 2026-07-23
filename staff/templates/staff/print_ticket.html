@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Print Ticket {{ ticket.tracking_id }}</title>
+<link rel="shortcut icon" href="repair_system/static/favicon.ico">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+
+<style>
+
+/* PAGE SIZE FOR 104x56mm PAPER */
+@page {
+    size:104mm 56mm;
+    margin:0;
+}
+
+* {
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+/* BODY */
+html, body {
+    width:104mm;
+    height:56mm;
+    font-family: Arial, Helvetica, sans-serif;
+    background:white;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+/* MAIN TICKET */
+.ticket {
+    width:100%;
+    height:100%;
+    border:1px solid black;
+    padding:2mm;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+}
+
+/* TITLE */
+.ticket-title {
+    text-align:center;
+    font-size:12px;
+    font-weight:bold;
+    border-bottom:1px solid black;
+    padding-bottom:1mm;
+}
+
+/* INFO GRID */
+.ticket-info {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:1mm;
+    margin-top:1mm;
+}
+
+.ticket-row {
+    display:flex;
+    flex-direction:column;
+}
+
+.ticket-row strong {
+    font-size:6px;
+    text-transform:uppercase;
+}
+
+.ticket-row span {
+    font-size:9px;
+    font-weight:600;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+/* BARCODE */
+.barcode-section {
+    border-top:1px solid black;
+    padding-top:1mm;
+    text-align:center;
+}
+
+.tracking-id-text {
+    font-size:9px;
+    font-weight:bold;
+    letter-spacing:1px;
+    margin-bottom:1mm;
+}
+
+.barcode-container {
+    display:flex;
+    justify-content:center;
+}
+
+/* PRINT SETTINGS */
+@media print {
+    html, body {
+        width:104mm;
+        height:56mm;
+    }
+
+    .ticket {
+        page-break-inside:avoid;
+    }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="ticket">
+
+<div class="ticket-title">
+REPAIR TICKET
+</div>
+
+<div class="ticket-info">
+
+<div class="ticket-row">
+<strong>Email</strong>
+<span>{{ ticket.client.email|default:"N/A" }}</span>
+</div>
+
+<div class="ticket-row">
+<strong>Date</strong>
+<span>{{ ticket.created_at|date:"d.m.Y" }}</span>
+</div>
+
+<div class="ticket-row">
+<strong>Client</strong>
+<span>{{ ticket.client.first_name }} {{ ticket.client.last_name }}</span>
+</div>
+
+<div class="ticket-row">
+<strong>Phone</strong>
+<span>{{ ticket.client_phone|default:"N/A" }}</span>
+</div>
+
+<div class="ticket-row">
+<strong>Device</strong>
+<span>{{ ticket.device_type }} {{ ticket.device_model }}</span>
+</div>
+
+<div class="ticket-row">
+<strong>Problem</strong>
+<span>{{ ticket.description|truncatechars:20|default:"N/A" }}</span>
+</div>
+
+</div>
+
+<div class="barcode-section">
+
+<div class="tracking-id-text">
+{{ ticket.tracking_id }}
+</div>
+
+<div class="barcode-container">
+<svg id="barcode"></svg>
+</div>
+
+</div>
+
+</div>
+
+<script>
+window.onload = function(){
+
+    // Generate barcode for thermal printer
+    JsBarcode("#barcode", "{{ ticket.tracking_id }}", {
+        format:"CODE128",
+        lineColor:"#000",
+        width:1.2,   // slightly thinner for small ticket
+        height:18,   // adjust for 56mm height
+        displayValue:false,
+        margin:0
+    });
+
+    // Print automatically
+    setTimeout(function(){
+        window.print();
+    },500);
+}
+</script>
+
+</body>
+</html>

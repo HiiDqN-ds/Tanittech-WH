@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}{{ T.nav_kasse }}{% endblock %}
+{% block content %}
+<div class="container mt-4" style="max-width: 1200px;">
+
+  <h2>{{ T.nav_kasse }}</h2>
+
+  <!-- CSV Download Button -->
+  <div class="mb-3">
+    <a href="{{ url_for('kasse', download='csv') }}" class="btn btn-outline-primary">
+      {{ T.kasse_download_csv }}
+    </a>
+  </div>
+        <!-- Monthly summary box -->
+      <div class="alert alert-secondary py-3 px-4 shadow-sm mt-4" style="border-radius: 8px;">
+        <strong>{{ T.kasse_monthly_summary_title }}</strong>
+        <ul class="mb-0" style="list-style: none; padding-left: 0;">
+          {% for item in monthly_summary %}
+            <li>
+              {{ item.month[:7] }}:
+              <span style="color: {{ 'green' if item.total >= 0 else 'red' }}">
+                €{{ "%.2f"|format(item.total) }}
+              </span>
+            </li>
+          {% else %}
+            <li>{{ T.kasse_no_data }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+  <!-- Buttons -->
+  {% if can_kasse %}
+  <div class="mb-3 d-flex gap-2 flex-wrap justify-content-start">
+    <button class="btn btn-success" onclick="openPopup('einzahlung')">{{ T.kasse_deposit_btn }}</button>
+    <button class="btn btn-danger" onclick="openPopup('auszahlung')">{{ T.kasse_withdrawal_btn }}</button>
+  </div>
+  {% else %}
+  <div class="alert alert-warning">{{ T.kasse_access_revoked }}</div>
+  {% endif %}
+
+  <!-- Responsive Row Layout -->
+  <div class="row">
+    <!-- Table Column -->
+    <div class="col-lg-8 col-md-12 mb-4">
+      <div class="table-responsive">
+        <table class="table table-bordered table-striped data-table">
+          <thead class="table-light">
+            <tr>
+              <th>{{ T.common_date }}</th>
+              <th>{{ T.kasse_type_header }}</th>
+              <th>{{ T.common_amount }}</th>
+              <th>{{ T.common_description }}</th>
+              <th>{{ T.kasse_user_header }}</th>
+              {% if role == 'admin' %}
+              <th data-no-sort>{{ T.common_actions }}</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in transactions %}
+            <tr>
+              <td>{{ t.date.strftime('%Y-%m-%d %H:%M') }}</td>
+              <td>{{ t.type.capitalize() }}</td>
+              <td style="color: {{ 'green' if t.amount > 0 else 'red' }}">€{{ "{:.2f}".format(t.amount) }}</td>
+              <td>{{ t.description }}</td>
+              <td>{{ t.username }}</td>
+              {% if role == 'admin' %}
+              <td>
+                <a href="{{ url_for('edit_kasse_transaction', transaction_id=t.id) }}" class="btn btn-sm btn-outline-secondary">{{ T.common_edit }}</a>
+                <form action="{{ url_for('delete_cash_transaction', transaction_id=t.id) }}" method="post" style="display:inline;">
+                  
+                  <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+                </form>
+              </td>
+              {% endif %}
+            </tr>
+            {% else %}
+            <tr><td colspan="{{ 6 if role == 'admin' else 5 }}" class="text-center">{{ T.kasse_no_entries }}</td></tr>
+            {% endfor %} 
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Summary Box Column -->
+    <div class="col-lg-4 col-md-12">
+      <div class="alert alert-info py-3 px-4 shadow-sm" style="border-radius: 8px;">
+        <strong>{{ T.kasse_current_balance }}</strong><br>
+        <span style="font-size: 1.4em; color: {{ 'green' if current_balance >= 0 else 'red' }}">
+          €{{ "{:.2f}".format(current_balance) }}
+        </span>
+        <hr>
+        <strong>{{ T.kasse_revenue_today }}</strong><br>
+        <span style="font-size: 1.2em; color: green;">
+          + €{{ "{:.2f}".format(total_sold_today) }}
+        </span>
+        <hr>
+        <strong>{{ T.kasse_expenses_today }}</strong><br>
+        <span style="font-size: 1.2em; color: red;">
+          − €{{ "{:.2f}".format(total_orders_today) }}
+        </span>
+        <hr>
+        <strong>{{ T.kasse_debt_payments_today }}</strong><br>
+        <span style="font-size: 1.2em; color: green;">
+          + €{{ "{:.2f}".format(cash_debt_payments_today) }}
+        </span>
+        <hr>
+        <strong>{{ T.kasse_salary_payments_today }}</strong><br>
+        <span style="font-size: 1.2em; color: red;">
+          − €{{ "{:.2f}".format(cash_salary_payments_today) }}
+        </span>
+        <hr>
+        <strong>{{ T.kasse_calculated_balance }}</strong><br>
+        <span style="font-size: 1.4em; color: {{ 'green' if total_balance >= 0 else 'red' }}">
+          €{{ "{:.2f}".format(total_balance) }}
+        </span>
+      </div>
+
+
+
+<!-- Popup Form -->
+<div id="popupForm" style="display: none; position: fixed; top: 20%; left: 50%; transform: translateX(-50%);
+     background: white; padding: 20px; border: 2px solid #ccc; border-radius: 8px; z-index: 1000;">
+  <form method="post" onsubmit="return disableSubmit(this)">
+   
+    <input type="hidden" name="typ" id="popupTyp">
+    <div class="mb-3">
+      <label>{{ T.common_amount }} (€):</label>
+      <input type="number" step="0.01" name="betrag" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label>{{ T.common_description }}:</label>
+      <textarea name="beschreibung" class="form-control" rows="2" required></textarea>
+    </div>
+    <div class="mb-3">
+      <label class="form-label d-block">{{ T.debts_payment_method_label }}</label>
+      <div class="btn-group w-100" role="group">
+        <input type="radio" class="btn-check" name="payment_method" id="kasseMethodCash" value="cash" checked>
+        <label class="btn btn-outline-secondary" for="kasseMethodCash"><i class="bi bi-cash-coin"></i> {{ T.debts_payment_method_cash }}</label>
+        <input type="radio" class="btn-check" name="payment_method" id="kasseMethodCard" value="card">
+        <label class="btn btn-outline-secondary" for="kasseMethodCard"><i class="bi bi-credit-card"></i> {{ T.debts_payment_method_card }}</label>
+      </div>
+    </div>
+    <div class="d-flex justify-content-between align-items-center">
+      <button type="submit" class="btn btn-primary" id="submitBtn">{{ T.common_save }}</button>
+      <span id="processingText" style="display:none; margin-left:10px;">{{ T.kasse_processing }}</span>
+      <button type="button" class="btn btn-secondary" onclick="closePopup()">{{ T.common_cancel }}</button>
+    </div>
+  </form>
+</div>
+    </div>
+  </div>
+
+<script>
+  function openPopup(type) {
+    document.getElementById('popupTyp').value = type;
+    document.getElementById('popupForm').style.display = 'block';
+    resetFormState();
+  }
+  function closePopup() {
+    document.getElementById('popupForm').style.display = 'none';
+  }
+
+  function disableSubmit(form) {
+    const btn = form.querySelector('#submitBtn');
+    const processingText = form.querySelector('#processingText');
+    btn.disabled = true;
+    processingText.style.display = 'inline';
+    return true;  // Allow form submission
+  }
+
+  function resetFormState() {
+    const btn = document.getElementById('submitBtn');
+    const processingText = document.getElementById('processingText');
+    btn.disabled = false;
+    processingText.style.display = 'none';
+  }
+</script>
+
+
+<!-- Optional responsive tweaks -->
+<style>
+  @media (max-width: 576px) {
+    table td, table th {
+      font-size: 0.85em;
+      white-space: nowrap;
+    }
+  }
+</style>
+
+</div>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}{{ T.item_edit_title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">{{ T.item_edit_title }}: {{ item.product_name or item.name }}</h2>
+
+  <form method="POST">
+    <!-- Barcode edit checkbox -->
+    <div class="mb-3 form-check">
+      <input type="checkbox" class="form-check-input" id="edit-barcode-checkbox" name="edit_barcode">
+      <label class="form-check-label" for="edit-barcode-checkbox">{{ T.item_edit_barcode_checkbox }}</label>
+    </div>
+
+    <!-- Barcode input -->
+    <div class="mb-3">
+      <label class="form-label">{{ T.common_barcode }}</label>
+      <input 
+        name="barcode" 
+        id="barcode-input" 
+        class="form-control" 
+        value="{{ item.barcode }}" 
+        disabled
+        placeholder="{{ T.item_barcode_placeholder }}"
+      >
+    </div>
+
+    <!-- Hidden barcode to keep old value if not editing -->
+    <input type="hidden" name="old_barcode" value="{{ item.barcode }}">
+
+    <div class="mb-3">
+      <label class="form-label">{{ T.item_sku_label }}</label>
+      <input name="sku" class="form-control" placeholder="{{ T.item_sku_placeholder }}" value="{{ item.sku or '' }}">
+    </div>
+
+    <!-- Other fields -->
+    <div class="mb-3">
+      <label class="form-label">{{ T.common_name }}</label>
+      <input name="product_name" class="form-control" value="{{ item.product_name or item.name }}" required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">{{ T.item_purchase_price }}</label>
+      <input name="purchase_price" type="number" step="0.01" class="form-control" value="{{ item.purchase_price }}" required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">{{ T.item_selling_price }}</label>
+      <input name="selling_price" type="number" step="0.01" class="form-control" value="{{ item.selling_price }}" required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">{{ T.item_min_selling_price }}</label>
+      <input name="min_selling_price" type="number" step="0.01" class="form-control" value="{{ item.min_selling_price }}" required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">{{ T.common_quantity }}</label>
+      <input name="quantity" type="number" class="form-control" value="{{ item.quantity }}" required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">{{ T.common_description }}</label>
+      <textarea name="description" class="form-control" rows="3">{{ item.description }}</textarea>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">{{ T.item_photo_url }}</label>
+      <input name="photo_link" class="form-control" value="{{ item.photo_link }}">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">{{ T.item_condition_label }}</label>
+      <select name="item_condition" class="form-select">
+        <option value="neu" {% if item.item_condition == 'neu' %}selected{% endif %}>{{ T.item_condition_neu }}</option>
+        <option value="gebraucht" {% if item.item_condition == 'gebraucht' %}selected{% endif %}>{{ T.item_condition_gebraucht }}</option>
+        <option value="defekt" {% if item.item_condition == 'defekt' %}selected{% endif %}>{{ T.item_condition_defekt }}</option>
+      </select>
+    </div>
+
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-success">{{ T.item_save_submit }}</button>
+      <a href="{{ url_for('list_items') }}" class="btn btn-secondary">{{ T.common_cancel }}</a>
+    </div>
+  </form>
+</div>
+
+<script>
+  const checkbox = document.getElementById('edit-barcode-checkbox');
+  const barcodeInput = document.getElementById('barcode-input');
+
+  checkbox.addEventListener('change', () => {
+    barcodeInput.disabled = !checkbox.checked;
+  });
+</script>
+{% endblock %}

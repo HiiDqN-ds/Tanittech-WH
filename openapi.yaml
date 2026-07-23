@@ -1,0 +1,151 @@
+openapi: 3.0.3
+info:
+  title: Ria-SQL-v4 External API
+  description: >
+    External, API-key-secured endpoints for integrating a POS, website, or
+    script with this shop's inventory and sales — without a logged-in
+    browser session. All /api/v1/* endpoints (except /health) require the
+    X-API-Key header, set via the API_KEY environment variable.
+  version: "1.0"
+servers:
+  - url: /api/v1
+paths:
+  /health:
+    get:
+      summary: Health/status check (no auth required)
+      responses:
+        '200':
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  database: { type: string, example: ok }
+                  assistant_configured: { type: boolean }
+                  external_api_configured: { type: boolean }
+                  ocr_available: { type: boolean }
+                  time: { type: string, format: date-time }
+        '503':
+          description: Database unreachable
+  /items:
+    get:
+      summary: Look up items by name substring or exact barcode
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+          description: Product name substring or exact barcode
+      responses:
+        '200':
+          description: Matching items (max 50)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        barcode: { type: string }
+                        product_name: { type: string }
+                        quantity: { type: integer }
+                        selling_price: { type: number }
+        '401': { description: Missing or invalid API key }
+        '429': { description: Rate limit exceeded (60 req/min per key) }
+        '503': { description: External API not enabled (API_KEY not set) }
+  /sell:
+    post:
+      summary: Record a one-line sale
+      security: [{ ApiKeyAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identifier]
+              properties:
+                identifier:
+                  type: string
+                  description: Exact barcode or partial, case-insensitive product name
+                quantity:
+                  type: integer
+                  default: 1
+      responses:
+        '200':
+          description: Sale recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  product_name: { type: string }
+                  quantity: { type: integer }
+                  total_price: { type: number }
+                  profit: { type: number }
+                  remaining: { type: integer }
+                  low_stock: { type: boolean }
+        '400': { description: Invalid identifier/quantity, or insufficient stock }
+        '401': { description: Missing or invalid API key }
+        '404': { description: No matching item found }
+        '429': { description: Rate limit exceeded (60 req/min per key) }
+  /assistant/chat:
+    post:
+      summary: >
+        Talk to the same AI shop assistant used by the in-app chat widget
+        (same tools: check stock, record a sale, add a debt/invoice, etc.),
+        without a logged-in browser session. This is what the standalone
+        chat-only app calls, but any external client (a kiosk, a second
+        app, a script) can use it the same way.
+      security: [{ ApiKeyAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:
+                  type: string
+                  description: The user's message, in German, English, or Arabic
+                history:
+                  type: array
+                  description: >
+                    Prior turns of this conversation, oldest first (only the
+                    last 20 are used). Send back whatever this endpoint
+                    returned as `reply` on previous calls, paired with the
+                    `message` you sent, so the assistant has context.
+                  items:
+                    type: object
+                    properties:
+                      role: { type: string, enum: [user, assistant] }
+                      content: { type: string }
+      responses:
+        '200':
+          description: Assistant reply (may have taken read/write actions via tools)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  reply: { type: string }
+        '400': { description: Empty message }
+        '401': { description: Missing or invalid API key }
+        '429': { description: Rate limit exceeded (30 req/min per key) }
+        '502': { description: Assistant/LLM provider unreachable or rate-limited }
+        '503': { description: OPENAI_API_KEY not configured on the server }
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key

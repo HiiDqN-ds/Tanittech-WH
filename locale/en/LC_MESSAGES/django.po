@@ -1,0 +1,565 @@
+# English translations for Django project.
+# Copyright (C) 2024
+# This file is distributed under the same license as the Django project.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: repair_tracker\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-01 00:00+0000\n"
+"PO-Revision-Date: 2024-01-01 00:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: English\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: home/templates/home/index.html
+msgid "Services"
+msgstr "Services"
+
+#: home/templates/home/index.html
+msgid "Contact"
+msgstr "Contact"
+
+#: home/templates/home/index.html
+msgid "Track Repair"
+msgstr "Track Repair"
+
+#: home/templates/home/index.html
+msgid "Fast & Reliable Device Repair"
+msgstr "Fast & Reliable Device Repair"
+
+#: home/templates/home/index.html
+msgid "Phones, Laptops, Tablets – We Fix Them All"
+msgstr "Phones, Laptops, Tablets – We Fix Them All"
+
+#: home/templates/home/index.html
+msgid "Open a Repair Ticket"
+msgstr "Open a Repair Ticket"
+
+#: home/templates/home/index.html
+msgid "Expert Laptop Repairs"
+msgstr "Expert Laptop Repairs"
+
+#: home/templates/home/index.html
+msgid "We fix hardware, software, and virus issues fast."
+msgstr "We fix hardware, software, and virus issues fast."
+
+#: home/templates/home/index.html
+msgid "Book Now"
+msgstr "Book Now"
+
+#: home/templates/home/index.html
+msgid "Professional Device Diagnostics"
+msgstr "Professional Device Diagnostics"
+
+#: home/templates/home/index.html
+msgid "We find the problem quickly and accurately."
+msgstr "We find the problem quickly and accurately."
+
+#: home/templates/home/index.html
+msgid "Get Started"
+msgstr "Get Started"
+
+#: home/templates/home/index.html
+msgid "Our Services"
+msgstr "Our Services"
+
+#: home/templates/home/index.html
+msgid "Phone Repair"
+msgstr "Phone Repair"
+
+#: home/templates/home/index.html
+msgid "Screen, battery, water damage and more."
+msgstr "Screen, battery, water damage and more."
+
+#: home/templates/home/index.html
+msgid "Laptop Repair"
+msgstr "Laptop Repair"
+
+#: home/templates/home/index.html
+msgid "Hardware, software, and virus removal."
+msgstr "Hardware, software, and virus removal."
+
+#: home/templates/home/index.html
+msgid "Tablet Repair"
+msgstr "Tablet Repair"
+
+#: home/templates/home/index.html
+msgid "Screen, battery, and performance issues."
+msgstr "Screen, battery, and performance issues."
+
+#: home/templates/home/index.html
+msgid "Diagnostics"
+msgstr "Diagnostics"
+
+#: home/templates/home/index.html
+msgid "Contact Us"
+msgstr "Contact Us"
+
+#: home/templates/home/index.html
+msgid "Phone"
+msgstr "Phone"
+
+#: home/templates/home/index.html
+msgid "Email"
+msgstr "Email"
+
+#: home/templates/home/index.html
+msgid "Address"
+msgstr "Address"
+
+#: home/templates/home/index.html
+msgid "Create a New Repair Order"
+msgstr "Create a New Repair Order"
+
+#: home/templates/home/index.html
+msgid "Full Name"
+msgstr "Full Name"
+
+#: home/templates/home/index.html
+msgid "Device Model"
+msgstr "Device Model"
+
+#: home/templates/home/index.html
+msgid "Problem Description"
+msgstr "Problem Description"
+
+#: home/templates/home/index.html
+msgid "Estimated Price"
+msgstr "Estimated Price"
+
+#: home/templates/home/index.html
+msgid "Device Photo (Optional)"
+msgstr "Device Photo (Optional)"
+
+#: home/templates/home/index.html
+msgid "Submit"
+msgstr "Submit"
+
+#: home/templates/home/index.html
+msgid "Track Your Repair"
+msgstr "Track Your Repair"
+
+#: home/templates/home/index.html
+msgid "Enter your tracking number to see the current status of your repair."
+msgstr "Enter your tracking number to see the current status of your repair."
+
+#: home/templates/home/index.html
+msgid "Tracking Number"
+msgstr "Tracking Number"
+
+#: home/templates/home/index.html
+msgid "Check Status"
+msgstr "Check Status"
+
+#: home/templates/home/index.html
+msgid "Select Device"
+msgstr "Select Device"
+
+#: home/templates/home/index.html
+msgid "Smartphone"
+msgstr "Smartphone"
+
+#: home/templates/home/index.html
+msgid "Tablet"
+msgstr "Tablet"
+
+#: home/templates/home/index.html
+msgid "Laptop"
+msgstr "Laptop"
+
+#: home/templates/home/index.html
+msgid "Important Links"
+msgstr "Important Links"
+
+#: home/templates/home/index.html
+msgid "Privacy Policy"
+msgstr "Privacy Policy"
+
+#: home/templates/home/index.html
+msgid "Terms and Conditions"
+msgstr "Terms and Conditions"
+
+#: home/templates/home/index.html
+msgid "Delivery and Shipping"
+msgstr "Delivery and Shipping"
+
+#: home/templates/home/index.html
+msgid "Right of Withdrawal"
+msgstr "Right of Withdrawal"
+
+#: home/templates/home/index.html
+msgid "Order Process"
+msgstr "Order Process"
+
+#: home/templates/home/index.html
+msgid "More Links"
+msgstr "More Links"
+
+#: home/templates/home/index.html
+msgid "Impressum"
+msgstr "Impressum"
+
+#: home/templates/home/index.html
+msgid "Blog"
+msgstr "Blog"
+
+#: home/templates/home/index.html
+msgid "FAQs"
+msgstr "FAQs"
+
+#: home/templates/home/index.html
+msgid "Subscribe to Newsletter"
+msgstr "Subscribe to Newsletter"
+
+#: home/templates/home/index.html
+msgid "Your email address"
+msgstr "Your email address"
+
+#: home/templates/home/index.html
+msgid "Subscribe"
+msgstr "Subscribe"
+
+#: home/templates/home/index.html
+msgid "© 2024 Tanitech. All rights reserved."
+msgstr "© 2024 Tanitech. All rights reserved."
+
+#: home/templates/home/index.html
+msgid "contact"
+msgstr "contact"
+
+#: home/templates/pages/datenschutz.html
+msgid "Privacy Policy - Tanitech"
+msgstr "Privacy Policy - Tanitech"
+
+#: home/templates/pages/datenschutz.html
+msgid "Your privacy is important to us. This policy explains how we collect, use, and protect your data."
+msgstr "Your privacy is important to us. This policy explains how we collect, use, and protect your data."
+
+#: home/templates/pages/datenschutz.html
+msgid "Data Collection"
+msgstr "Data Collection"
+
+#: home/templates/pages/datenschutz.html
+msgid "Cookies"
+msgstr "Cookies"
+
+#: home/templates/pages/datenschutz.html
+msgid "Back to Home"
+msgstr "Back to Home"
+
+#: home/templates/pages/agb.html
+msgid "Terms and Conditions - Tanitech"
+msgstr "Terms and Conditions - Tanitech"
+
+#: home/templates/pages/agb.html
+msgid "Please read these terms carefully before using our services."
+msgstr "Please read these terms carefully before using our services."
+
+#: home/templates/pages/agb.html
+msgid "1. Services"
+msgstr "1. Services"
+
+#: home/templates/pages/lieferung.html
+msgid "Delivery and Shipping - Tanitech"
+msgstr "Delivery and Shipping - Tanitech"
+
+#: home/templates/pages/lieferung.html
+msgid "Information about delivery times and shipping costs."
+msgstr "Information about delivery times and shipping costs."
+
+#: home/templates/pages/widerruf.html
+msgid "Right of Withdrawal - Tanitech"
+msgstr "Right of Withdrawal - Tanitech"
+
+#: home/templates/pages/widerruf.html
+msgid "You have 14 days to withdraw from the service."
+msgstr "You have 14 days to withdraw from the service."
+
+#: home/templates/pages/widerruf.html
+msgid "Cancellation Form"
+msgstr "Cancellation Form"
+
+#: home/templates/pages/widerruf.html
+msgid "Name"
+msgstr "Name"
+
+#: home/templates/pages/widerruf.html
+msgid "Send Cancellation"
+msgstr "Send Cancellation"
+
+#: home/templates/pages/bestellung.html
+msgid "Order Process - Tanitech"
+msgstr "Order Process - Tanitech"
+
+#: home/templates/pages/impressum.html
+msgid "Impressum - Tanitech"
+msgstr "Impressum - Tanitech"
+
+#: home/templates/pages/blog.html
+msgid "Blog - Tanitech"
+msgstr "Blog - Tanitech"
+
+#: home/templates/pages/blog.html
+msgid "Latest Repair Tips"
+msgstr "Latest Repair Tips"
+
+#: home/templates/pages/blog.html
+msgid "Read More"
+msgstr "Read More"
+
+#: home/templates/pages/faqs.html
+msgid "FAQs - Tanitech"
+msgstr "FAQs - Tanitech"
+
+#: home/templates/pages/faqs.html
+msgid "Frequently Asked Questions"
+msgstr "Frequently Asked Questions"
+
+#: home/templates/pages/faqs.html
+msgid "How long does repair take?"
+msgstr "How long does repair take?"
+
+#: home/templates/pages/faqs.html
+msgid "Is there warranty?"
+msgstr "Is there warranty?"
+
+#: home/templates/pages/kontakt.html
+msgid "Contact - Tanitech"
+msgstr "Contact - Tanitech"
+
+#: home/templates/pages/kontakt.html
+msgid "Get in touch"
+msgstr "Get in touch"
+
+#: home/templates/pages/kontakt.html
+msgid "Message"
+msgstr "Message"
+
+#: home/templates/pages/kontakt.html
+msgid "Send Message"
+msgstr "Send Message"
+
+#: home/templates/pages/newsletter.html
+msgid "Newsletter - Tanitech"
+msgstr "Newsletter - Tanitech"
+
+#: home/templates/pages/newsletter.html
+msgid "Newsletter Subscription"
+msgstr "Newsletter Subscription"
+
+#: home/templates/pages/newsletter.html
+msgid "You will receive repair tips and offers."
+msgstr "You will receive repair tips and offers."
+
+#: staff/templates/staff/dashboard.html
+msgid "Repair Tickets Dashboard"
+msgstr "Repair Tickets Dashboard"
+
+#: staff/templates/staff/dashboard.html
+msgid "Open Amount"
+msgstr "Open Amount"
+
+#: staff/templates/staff/dashboard.html
+msgid "Closed Amount"
+msgstr "Closed Amount"
+
+#: staff/templates/staff/dashboard.html
+msgid "Total Revenue"
+msgstr "Total Revenue"
+
+#: staff/templates/staff/dashboard.html
+msgid "open tickets"
+msgstr "open tickets"
+
+#: staff/templates/staff/dashboard.html
+msgid "closed tickets"
+msgstr "closed tickets"
+
+#: staff/templates/staff/dashboard.html
+msgid "total tickets"
+msgstr "total tickets"
+
+#: staff/templates/staff/dashboard.html
+msgid "Search Tracking ID / Client / Device..."
+msgstr "Search Tracking ID / Client / Device..."
+
+#: staff/templates/staff/dashboard.html
+msgid "Warehouse"
+msgstr "Warehouse"
+
+#: staff/templates/staff/dashboard.html
+msgid "New Ticket"
+msgstr "New Ticket"
+
+#: staff/templates/staff/dashboard.html
+msgid "Tracking ID"
+msgstr "Tracking ID"
+
+#: staff/templates/staff/dashboard.html
+msgid "Client"
+msgstr "Client"
+
+#: staff/templates/staff/dashboard.html
+msgid "Device"
+msgstr "Device"
+
+#: staff/templates/staff/dashboard.html
+msgid "Status"
+msgstr "Status"
+
+#: staff/templates/staff/dashboard.html
+msgid "Created"
+msgstr "Created"
+
+#: staff/templates/staff/dashboard.html
+msgid "Actions"
+msgstr "Actions"
+
+#: staff/templates/staff/dashboard.html
+msgid "View"
+msgstr "View"
+
+#: staff/templates/staff/dashboard.html
+msgid "Delete"
+msgstr "Delete"
+
+#: staff/templates/staff/dashboard.html
+msgid "No tickets found."
+msgstr "No tickets found."
+
+#: staff/templates/staff/dashboard.html
+msgid "Logout"
+msgstr "Logout"
+
+#: staff/templates/staff/dashboard.html
+msgid "Create New Ticket"
+msgstr "Create New Ticket"
+
+#: staff/templates/staff/dashboard.html
+msgid "First Name"
+msgstr "First Name"
+
+#: staff/templates/staff/dashboard.html
+msgid "Last Name"
+msgstr "Last Name"
+
+#: staff/templates/staff/dashboard.html
+msgid "Device Type"
+msgstr "Device Type"
+
+#: staff/templates/staff/dashboard.html
+msgid "Problem description"
+msgstr "Problem description"
+
+#: staff/templates/staff/dashboard.html
+msgid "Cancel"
+msgstr "Cancel"
+
+#: admin_auth/templates/admin_auth/login.html
+msgid "Admin Login"
+msgstr "Admin Login"
+
+#: admin_auth/templates/admin_auth/login.html
+msgid "Username"
+msgstr "Username"
+
+#: admin_auth/templates/admin_auth/login.html
+msgid "Password"
+msgstr "Password"
+
+#: admin_auth/templates/admin_auth/login.html
+msgid "Login"
+msgstr "Login"
+
+#: staff/templates/staff/login.html
+msgid "Staff Login"
+msgstr "Staff Login"
+
+#: staff/templates/staff/create_ticket.html
+msgid "Create Ticket"
+msgstr "Create Ticket"
+
+#: staff/templates/staff/create_ticket.html
+msgid "Back to Dashboard"
+msgstr "Back to Dashboard"
+
+#: staff/templates/staff/create_ticket.html
+msgid "Create Ticket Manually"
+msgstr "Create Ticket Manually"
+
+#: staff/templates/staff/create_ticket.html
+msgid "Tracking ID (optional)"
+msgstr "Tracking ID (optional)"
+
+#: staff/templates/staff/create_ticket.html
+msgid "First name"
+msgstr "First name"
+
+#: staff/templates/staff/create_ticket.html
+msgid "Last name"
+msgstr "Last name"
+
+#: staff/templates/staff/create_ticket.html
+msgid "Device type"
+msgstr "Device type"
+
+#: staff/templates/staff/create_ticket.html
+msgid "Device model"
+msgstr "Device model"
+
+#: staff/templates/staff/create_ticket.html
+msgid "Problem"
+msgstr "Problem"
+
+#: staff/templates/staff/create_ticket.html
+msgid "Price"
+msgstr "Price"
+
+#: staff/templates/staff/create_ticket.html
+msgid "Create & Send Contract"
+msgstr "Create & Send Contract"
+
+#: home/templates/home/index.html
+msgid "Get the latest news and offers directly in your inbox."
+msgstr "Get the latest news and offers directly in your inbox."
+
+#: home/templates/home/index.html
+msgid "Ordering Process"
+msgstr "Ordering Process"
+
+#: home/templates/home/index.html
+msgid "Imprint"
+msgstr "Imprint"
+
+#: home/templates/home/index.html
+msgid "All rights reserved."
+msgstr "All rights reserved."
+
+#: home/templates/home/index.html home/templates/pages/blog.html home/templates/pages/faqs.html
+msgid "Support"
+msgstr "Support"
+
+#: home/templates/home/index.html home/templates/pages/blog.html home/templates/pages/faqs.html
+msgid "Quick Access"
+msgstr "Quick Access"
+
+#: home/templates/home/index.html home/templates/pages/blog.html home/templates/pages/faqs.html
+msgid "Repair Service"
+msgstr "Repair Service"
+
+#: home/templates/home/index.html home/templates/pages/blog.html home/templates/pages/faqs.html
+msgid "Smartphones, tablets, laptops and more – fast, transparent and reliable."
+msgstr "Smartphones, tablets, laptops and more – fast, transparent and reliable."
+
+#: home/templates/home/index.html home/templates/pages/blog.html home/templates/pages/faqs.html
+msgid "Newsletter"
+msgstr "Newsletter"
+
+#: home/templates/home/index.html home/templates/pages/blog.html home/templates/pages/faqs.html
+msgid "News and offers directly in your inbox."
+msgstr "News and offers directly in your inbox."

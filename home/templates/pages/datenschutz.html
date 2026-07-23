@@ -1,0 +1,65 @@
+{% load static i18n %}
+<!DOCTYPE html>
+<html lang="{{ request_language }}">
+<head>
+    <meta charset="UTF-8">
+    <title>Datenschutzerklärung - Tanitech</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="shortcut icon" href="{% static 'home/favicon.ico' %}" type="image/x-icon">
+</head>
+<body class="font-sans bg-gray-50">
+    <div class="min-h-screen py-12">
+        <div class="max-w-4xl mx-auto px-4">
+            <h1 class="text-4xl font-bold text-center mb-8">Datenschutzerklärung</h1>
+            <div class="bg-white p-8 rounded-lg shadow-lg space-y-6">
+                <div>
+                    <p class="text-lg text-gray-700 leading-8">Der Schutz Ihrer persönlichen Daten ist uns besonders wichtig. In dieser Datenschutzerklärung informieren wir Sie darüber, welche Daten wir erheben, wie sie verarbeitet werden und welche Rechte Sie haben.</p>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-semibold mb-4">1. Verantwortliche Stelle</h2>
+                    <p class="text-gray-700 leading-8">Tanitech<br>Friedrichstraße 1<br>40217 Düsseldorf, Deutschland<br>E-Mail: <a href="mailto:info@tanitech.de" class="text-blue-600 hover:underline">info@tanitech.de</a></p>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-semibold mb-4">2. Welche Daten erheben wir?</h2>
+                    <p class="text-gray-700 leading-8">Wir erheben personenbezogene Daten, wenn Sie:</p>
+                    <ul class="list-disc list-inside mt-4 space-y-2 text-gray-700">
+                        <li>eine Bestellung aufgeben</li>
+                        <li>unser Kontaktformular nutzen</li>
+                        <li>unsere Website besuchen (Cookies &amp; Analysedaten)</li>
+                    </ul>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-semibold mb-4">3. Wie nutzen wir Ihre Daten?</h2>
+                    <ul class="list-disc list-inside mt-4 space-y-2 text-gray-700">
+                        <li>Zur Bearbeitung Ihrer Bestellungen</li>
+                        <li>Für Kundenservice-Anfragen</li>
+                        <li>Zur Optimierung unserer Website</li>
+                        <li>Für rechtliche Anforderungen</li>
+                    </ul>
+                    <p class="mt-4 text-gray-700">Wir geben Ihre Daten nicht an Dritte weiter, es sei denn, dies ist gesetzlich vorgeschrieben oder zur Vertragserfüllung erforderlich.</p>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-semibold mb-4">4. Ihre Datenschutzrechte</h2>
+                    <p class="text-gray-700 leading-8">Sie haben das Recht auf:</p>
+                    <ul class="list-disc list-inside mt-4 space-y-2 text-gray-700">
+                        <li>Auskunft</li>
+                        <li>Berichtigung</li>
+                        <li>Löschung</li>
+                        <li>Widerspruch</li>
+                        <li>Datenübertragbarkeit</li>
+                    </ul>
+                    <p class="mt-4 text-gray-700">Kontaktieren Sie uns bei Fragen: <a href="mailto:info@tanitech.de" class="text-blue-600 hover:underline">info@tanitech.de</a>.</p>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-semibold mb-4">Allgemeine Fragen</h2>
+                    <p class="text-gray-700 leading-8">Bei allgemeinen Fragen zur Datenschutzerklärung stehen wir Ihnen gerne zur Verfügung.</p>
+                </div>
+                <div>
+                    <a href="/" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">Zurück zur Startseite</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

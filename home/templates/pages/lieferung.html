@@ -1,0 +1,41 @@
+{% load static i18n %}
+<!DOCTYPE html>
+<html lang="{{ request_language }}">
+<head>
+    <meta charset="UTF-8">
+    <title>Lieferung und Versand - Phone Repair Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="shortcut icon" href="{% static 'home/favicon.ico' %}" type="image/x-icon">
+</head>
+<body class="font-sans bg-gray-50">
+    <div class="min-h-screen py-12">
+        <div class="max-w-4xl mx-auto px-4">
+            <h1 class="text-4xl font-bold text-center mb-8">Lieferung und Versand</h1>
+            <div class="bg-white p-8 rounded-3xl shadow-lg space-y-6">
+                <p class="text-lg text-gray-700 leading-8">Bei Phone Repair Pro kümmern wir uns darum, dass Ihre Reparatur schnell und sicher bei Ihnen ankommt.</p>
+                <div class="space-y-4 text-gray-700">
+                    <div>
+                        <h2 class="text-2xl font-semibold mb-2">Versandarten</h2>
+                        <ul class="list-disc list-inside space-y-2">
+                            <li>Standardversand: 2-3 Werktage</li>
+                            <li>Expressversand: 1 Werktag</li>
+                            <li>Abholung im Laden: jederzeit während der Öffnungszeiten</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-semibold mb-2">Versandkosten</h2>
+                        <p>Die genauen Versandkosten hängen von Ihrer Wahl und dem Versandziel ab. Im Bestellprozess sehen Sie die aktuell verfügbaren Optionen.</p>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-semibold mb-2">Lieferinformationen</h2>
+                        <p>Nach Versand erhalten Sie eine Bestätigung per E-Mail mit Sendungsverfolgung.</p>
+                    </div>
+                </div>
+                <a href="/" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700">Zurück zur Startseite</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row" style="justify-content:space-between; align-items:center; margin-bottom:18px;">
+  <h2 style="margin:0;">Stores</h2>
+  <a class="btn" href="{{ url_for('new_shop') }}">+ New subscription</a>
+</div>
+
+<div class="card-grid">
+  {% for shop in shops %}
+  <a class="fifa-card tier-{{ shop.plan_info.tier }}" href="{{ url_for('shop_detail', shop_id=shop.id) }}">
+    <div class="plan-tag">{{ shop.plan_info.name }}</div>
+    <div class="status-dot {{ shop.status }}"></div>
+    <div class="inner">
+      <div class="logo-wrap">
+        {% if shop.logo_filename %}
+          <img src="{{ url_for('uploaded_logo', filename=shop.logo_filename) }}" alt="">
+        {% else %}
+          <span class="fallback">{{ shop.name[:1] | upper }}</span>
+        {% endif %}
+      </div>
+      <div class="shop-name">{{ shop.name }}</div>
+      <div class="admin-name">{{ shop.admin.username if shop.admin else 'no admin?' }}</div>
+      <div class="stat-line">
+        <div><b>{{ shop.seller_count }}</b>sellers</div>
+        <div><b>€{{ shop.plan_info.price_eur }}</b>/mo</div>
+        <div><b>{{ shop.status }}</b>status</div>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+  <a class="add-card" href="{{ url_for('new_shop') }}">+ New subscription</a>
+</div>
+{% endblock %}

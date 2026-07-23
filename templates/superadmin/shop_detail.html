@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}{{ shop.name }}{% endblock %}
+{% block page_title %}{{ shop.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .shop-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .shop-meta { display: flex; align-items: center; gap: .6rem; margin-top: .35rem; }
+  .shop-pill {
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: .2rem .6rem;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .shop-pill.status-active { background: var(--brand-soft); color: var(--brand-dark); }
+  .shop-pill.status-suspended { background: var(--danger-soft); color: var(--danger); }
+  .shop-pill.plan { background: var(--surface-2); color: var(--ink-soft); border: 1px solid var(--line); }
+
+  .section-eyebrow {
+    font-family: var(--font-display);
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: .25rem;
+  }
+  .section-title { font-family: var(--font-display); font-size: 1.15rem; font-weight: 600; color: var(--ink); margin-bottom: 1rem; }
+
+  /* ---- Feature access cards ---- */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+  }
+  .feature-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.15rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: .9rem;
+    transition: border-color .15s ease, transform .15s ease;
+  }
+  .feature-card:hover { transform: translateY(-2px); border-color: var(--brand-soft); }
+  .feature-card.is-revoked { opacity: .78; }
+
+  .feature-top { display: flex; align-items: flex-start; gap: .8rem; }
+  .feature-icon {
+    width: 40px; height: 40px; flex-shrink: 0;
+    border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.05rem;
+  }
+  .feature-icon.accent-brand { background: var(--brand-soft); color: var(--brand-dark); }
+  .feature-icon.accent-gold { background: var(--gold-soft); color: var(--gold); }
+  .feature-icon.accent-neutral { background: var(--surface-2); color: var(--ink-soft); }
+
+  .feature-name { font-family: var(--font-display); font-weight: 600; font-size: .95rem; color: var(--ink); line-height: 1.25; }
+  .feature-desc { font-size: .78rem; color: var(--ink-soft); line-height: 1.4; margin-top: .2rem; }
+
+  .feature-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-top: .8rem; border-top: 1px solid var(--line);
+  }
+  .feature-status {
+    font-size: .66rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+    padding: .2rem .55rem; border-radius: 999px;
+  }
+  .feature-status.on { background: var(--brand-soft); color: var(--brand-dark); }
+  .feature-status.off { background: var(--surface-2); color: var(--ink-soft); border: 1px solid var(--line); }
+
+  .switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .switch-track {
+    position: absolute; inset: 0;
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 999px; cursor: pointer; transition: background-color .15s ease, border-color .15s ease;
+  }
+  .switch-track::before {
+    content: ""; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px;
+    background: var(--ink-soft); border-radius: 50%; transition: transform .15s ease, background-color .15s ease;
+  }
+  .switch input:checked + .switch-track { background: var(--brand-soft); border-color: var(--brand); }
+  .switch input:checked + .switch-track::before { transform: translateX(17px); background: var(--brand); }
+  .switch input:focus-visible + .switch-track { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+  /* ---- Team panel ---- */
+  .team-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .team-panel .table { margin-bottom: 0; }
+  .role-tag {
+    font-size: .68rem; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+    padding: .15rem .5rem; border-radius: 6px;
+  }
+  .role-tag.role-admin { background: var(--gold-soft); color: var(--gold); }
+  .role-tag.role-seller { background: var(--brand-soft); color: var(--brand-dark); }
+
+  /* ---- Branding (logo) ---- */
+  .branding-card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 1.25rem; display: flex; align-items: center; gap: 1.25rem; margin-bottom: 2.5rem;
+  }
+  .logo-preview {
+    width: 64px; height: 64px; border-radius: 14px; flex-shrink: 0;
+    background: var(--surface-2); border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+    font-family: var(--font-display); font-weight: 700; font-size: 1.4rem; color: var(--ink-soft);
+  }
+  .logo-preview img { width: 100%; height: 100%; object-fit: cover; }
+  .branding-form { flex: 1; display: flex; gap: .6rem; }
+  .branding-form input[type="url"] { flex: 1; }
+
+  /* ---- Admin login CRUD ---- */
+  .login-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; margin-bottom: 2.5rem; }
+  .login-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--line); }
+  .login-row:last-child { border-bottom: none; }
+  .login-user { display: flex; align-items: center; gap: .7rem; }
+  .login-avatar {
+    width: 36px; height: 36px; border-radius: 50%; background: var(--gold-soft); color: var(--gold);
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .9rem; flex-shrink: 0;
+  }
+  .login-actions { display: flex; gap: .4rem; flex-wrap: wrap; }
+  .login-actions details { position: relative; }
+  .login-actions summary {
+    list-style: none; cursor: pointer; font-size: .78rem; font-weight: 600;
+    padding: .35rem .7rem; border-radius: 7px; border: 1px solid var(--line); color: var(--ink-soft);
+    background: var(--surface-2);
+  }
+  .login-actions summary::-webkit-details-marker { display: none; }
+  .login-actions summary:hover { color: var(--ink); border-color: var(--brand-soft); }
+  .login-popover {
+    position: absolute; right: 0; top: calc(100% + 6px); z-index: 5;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md); padding: .85rem; width: 240px;
+  }
+  .login-popover input { margin-bottom: .6rem; }
+  .add-login-form { padding: 1rem 1.25rem; display: flex; gap: .6rem; flex-wrap: wrap; align-items: flex-end; }
+  .add-login-form .form-group { flex: 1; min-width: 140px; }
+  .add-login-form label { font-size: .72rem; color: var(--ink-soft); margin-bottom: .25rem; display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="shop-header">
+  <div>
+    <h2 class="mb-0">{{ shop.name }}</h2>
+    <div class="shop-meta">
+      <span class="shop-pill {{ 'status-active' if shop.status == 'active' else 'status-suspended' }}">{{ shop.status }}</span>
+      <span class="shop-pill plan">{{ shop.plan }} plan</span>
+    </div>
+  </div>
+  <a href="{{ url_for('superadmin_dashboard') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left"></i> Back
+  </a>
+</div>
+
+<div class="branding-card">
+  <div class="logo-preview">
+    {% if shop.logo_url %}
+      <img src="{{ shop.logo_url }}" alt="{{ shop.name }} logo">
+    {% else %}
+      {{ shop.name[:1] | upper }}
+    {% endif %}
+  </div>
+  <form class="branding-form" method="post" action="{{ url_for('set_shop_logo_route', shop_id=shop.id) }}">
+    <input type="url" name="logo_url" class="form-control" placeholder="https://example.com/logo.png"
+           value="{{ shop.logo_url or '' }}">
+    <button type="submit" class="btn btn-outline-secondary btn-sm">Save logo</button>
+  </form>
+</div>
+
+<div class="section-eyebrow">Access control</div>
+<div class="section-title">Feature access</div>
+
+<div class="feature-grid">
+  {% set feature_meta = {
+       'assistant': {'label': 'AI Assistant', 'desc': 'Chat-based assistant for sales, stock and debts.', 'icon': 'bi-stars', 'accent': 'accent-brand'},
+       'card_payment': {'label': 'Card Payment', 'desc': 'Accept card payments via Stripe Terminal at checkout.', 'icon': 'bi-credit-card', 'accent': 'accent-gold'},
+       'barcode_printing': {'label': 'Barcode Printing', 'desc': 'Generate and print barcode labels for products.', 'icon': 'bi-upc-scan', 'accent': 'accent-neutral'}
+  } %}
+  {% for key, meta in feature_meta.items() %}
+  {% set is_on = features.get(key, True) %}
+  <div class="feature-card {{ '' if is_on else 'is-revoked' }}">
+    <div class="feature-top">
+      <div class="feature-icon {{ meta.accent }}"><i class="bi {{ meta.icon }}"></i></div>
+      <div>
+        <div class="feature-name">{{ meta.label }}</div>
+        <div class="feature-desc">{{ meta.desc }}</div>
+      </div>
+    </div>
+    <div class="feature-footer">
+      <span class="feature-status {{ 'on' if is_on else 'off' }}">{{ 'Active' if is_on else 'Revoked' }}</span>
+      <form method="post" action="{{ url_for('toggle_shop_feature', shop_id=shop.id, feature=key) }}">
+        <label class="switch" title="{{ 'Revoke access' if is_on else 'Grant access' }}">
+          <input type="checkbox" {{ 'checked' if is_on }} onchange="this.form.submit()">
+          <span class="switch-track"></span>
+        </label>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="section-eyebrow">Login credentials</div>
+<div class="section-title">Shop admin login</div>
+
+<div class="login-panel">
+  {% for admin in admins %}
+  <div class="login-row">
+    <div class="login-user">
+      <div class="login-avatar">{{ admin.username[:1] | upper }}</div>
+      <div>
+        <div class="fw-semibold">{{ admin.username }}</div>
+        <div class="text-muted" style="font-size:.78rem;">{{ 'Active' if admin.activated else 'Deactivated' }}</div>
+      </div>
+    </div>
+    <div class="login-actions">
+      <details>
+        <summary>Rename</summary>
+        <div class="login-popover">
+          <form method="post" action="{{ url_for('rename_shop_admin', shop_id=shop.id, username=admin.username) }}">
+            <input type="text" name="new_username" class="form-control form-control-sm" placeholder="New username" required>
+            <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Save</button>
+          </form>
+        </div>
+      </details>
+      <details>
+        <summary>Reset password</summary>
+        <div class="login-popover">
+          <form method="post" action="{{ url_for('reset_shop_admin_password', shop_id=shop.id, username=admin.username) }}">
+            <input type="password" name="new_password" class="form-control form-control-sm" placeholder="New password (min 6 chars)" required minlength="6">
+            <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Save</button>
+          </form>
+        </div>
+      </details>
+      <form method="post" action="{{ url_for('delete_shop_admin', shop_id=shop.id, username=admin.username) }}"
+            onsubmit="return confirm('Delete admin login \'{{ admin.username }}\'? This cannot be undone.');">
+        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="text-muted p-3">No admin login for this shop yet — add one below.</div>
+  {% endfor %}
+
+  <form class="add-login-form" method="post" action="{{ url_for('add_shop_admin', shop_id=shop.id) }}">
+    <div class="form-group">
+      <label>New admin username</label>
+      <input type="text" name="username" class="form-control form-control-sm" required>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" name="password" class="form-control form-control-sm" required minlength="6">
+    </div>
+    <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Add login</button>
+  </form>
+</div>
+
+<div class="section-eyebrow">Users</div>
+<div class="section-title">Team</div>
+
+<div class="team-panel">
+  <table class="table table-hover align-middle mb-0">
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Role</th>
+        <th>Activated</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u.username }}</td>
+        <td><span class="role-tag role-{{ u.role }}">{{ u.role }}</span></td>
+        <td>{{ '✅' if u.activated else '❌' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="3" class="text-center text-muted py-4">No users in this shop yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

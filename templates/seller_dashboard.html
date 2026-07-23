@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}{{ T.nav_dashboard }} - {{ T.platform_name }}{% endblock %}
+{% block page_title %}{{ T.nav_dashboard }}{% endblock %}
+
+{% block content %}
+
+<div class="hero-banner">
+  <div class="hero-banner-decor"></div>
+  <div class="hero-content">
+    <div>
+      <div class="hero-eyebrow">{{ T.seller_dash_area }}</div>
+      <h1>{{ T.seller_dash_welcome }}, {{ session['username'] }} 👋</h1>
+      <p>{{ T.seller_dash_subtitle }}</p>
+    </div>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat-box">
+    <h2><i class="bi bi-sun"></i> {{ T.dash_daily_revenue }}</h2>
+    <p>€{{ total_balance | default(0) | round(2) }}</p>
+  </div>
+
+  <div class="stat-box">
+    <h2><i class="bi bi-calendar3"></i> {{ T.seller_dash_monthly_total }}</h2>
+    <p>€{{ monthly_total_order_price | default(0) | round(2) }}</p>
+  </div>
+
+  <div class="stat-box">
+    <h2><i class="bi bi-graph-up-arrow"></i> {{ T.seller_dash_monthly_profit }}</h2>
+    <p class="text-profit">€{{ monthly_profit | default(0) | round(2) }}</p>
+  </div>
+
+  <div class="stat-box">
+    <h2><i class="bi bi-arrow-left-right"></i> {{ T.seller_dash_daily_diff }}</h2>
+    <p class="{{ 'text-loss' if daily_net_difference|default(0) < 0 else 'text-profit' }}">
+      €{{ daily_net_difference | default(0) | round(2) }}
+    </p>
+  </div>
+</div>
+
+<div class="dashboard-panels">
+  <!-- Sales -->
+  <section class="section-panel sales">
+    <h2><i class="bi bi-graph-up-arrow text-success"></i> {{ T.dash_sales_section }}</h2>
+    <div class="section-actions">
+      <a href="{{ url_for('download_sales_csv') }}" title="{{ T.dash_download_csv }}">
+        <i class="fa-solid fa-download"></i>
+      </a>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>{{ T.common_date }}</th>
+            <th>{{ T.dash_item }}</th>
+            <th class="text-center">{{ T.common_quantity }}</th>
+            <th class="text-end">{{ T.dash_price_per_unit }}</th>
+            <th class="text-end">{{ T.dash_total_price }}</th>
+            <th class="text-end">{{ T.dash_profit }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sale in sales %}
+          <tr>
+            <td>{{ sale.date | datetimeformat('%d.%m.%Y') if sale.date else '-' }}</td>
+            <td>{{ sale.product_name }}</td>
+            <td class="text-center">{{ sale.quantity }}</td>
+            <td class="text-end">€{{ sale.sale_price | round(2) }}</td>
+            <td class="text-end">€{{ sale.total_price | round(2) }}</td>
+            <td class="text-end text-profit">€{{ sale.profit | round(2) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-center text-muted fst-italic py-4">{{ T.dash_no_sales_data }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Purchases -->
+  <section class="section-panel purchases">
+    <h2><i class="bi bi-bag text-warning"></i> {{ T.dash_purchases_section }}</h2>
+    <div class="section-actions">
+      <a href="{{ url_for('download_purchases_csv') }}" title="{{ T.dash_download_csv }}">
+        <i class="fa-solid fa-download"></i>
+      </a>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>{{ T.common_date }}</th>
+            <th>{{ T.dash_item }}</th>
+            <th class="text-center">{{ T.common_quantity }}</th>
+            <th class="text-end">{{ T.dash_price_per_unit }}</th>
+            <th class="text-end">{{ T.dash_total_price }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for purchase in purchases %}
+          <tr>
+            <td>{{ purchase.date | datetimeformat('%d.%m.%Y %H:%M') if purchase.date else '-' }}</td>
+            <td>{{ purchase.product_name or T.dash_unknown }}</td>
+            <td class="text-center">{{ purchase.quantity or 0 }}</td>
+            <td class="text-end">€{{ purchase.price | default(0) | round(2) }}</td>
+            <td class="text-end">€{{ (purchase.price * purchase.quantity) | default(0) | round(2) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-center text-muted fst-italic py-4">{{ T.dash_no_purchase_data }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<style>
+.dashboard-panels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+.dashboard-panels .section-panel { flex: 1; min-width: 320px; }
+</style>
+{% endblock %}

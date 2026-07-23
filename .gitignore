@@ -1,0 +1,34 @@
+# Environment variables
+.env
+
+# Django
+*.log
+local_settings.py
+
+# Databases
+*.sqlite3
+
+# Media
+media/**
+
+# IDE
+.vscode/
+.idea/
+
+# Bytecode
+__pycache__/
+*.pyc
+*.pyo
+.Python
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Static files
+staticfiles/
+
+# Dependencies
+venv/
+node_modules/
+ookk1.zip

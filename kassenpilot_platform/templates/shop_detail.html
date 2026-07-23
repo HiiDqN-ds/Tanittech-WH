@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row" style="justify-content:space-between; align-items:center; margin-bottom:6px;">
+  <h2 style="margin:0;">{{ shop.name }}</h2>
+  <form method="post" action="{{ url_for('toggle_shop', shop_id=shop.id) }}">
+    <button class="btn {{ 'danger' if shop.status == 'active' else '' }}" type="submit">
+      {{ 'Suspend shop' if shop.status == 'active' else 'Reactivate shop' }}
+    </button>
+  </form>
+</div>
+<p class="muted">Plan: {{ shop.plan }} · Status: <span class="pill {{ shop.status }}">{{ shop.status }}</span></p>
+
+<div class="card">
+  <table>
+    <thead><tr><th>User</th><th>Role</th><th>Status</th><th>Granted</th><th></th></tr></thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u.username }}</td>
+        <td>{{ u.role }}</td>
+        <td><span class="pill {{ 'active' if u.active else 'revoked' }}">{{ 'active' if u.active else 'revoked' }}</span></td>
+        <td class="muted" style="font-size:12px;">
+          {% for key, label in capabilities %}{% if u.perms.get(key) %}{{ label.split('(')[0].strip() }}{{ ", " if not loop.last else "" }}{% endif %}{% endfor %}
+        </td>
+        <td style="white-space:nowrap;">
+          <form method="post" action="{{ url_for('toggle_user', user_id=u.id) }}" style="display:inline;">
+            <button class="btn secondary" type="submit">{{ 'Revoke' if u.active else 'Grant access' }}</button>
+          </form>
+          <a class="btn secondary" href="{{ url_for('edit_permissions', user_id=u.id) }}">Permissions</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p style="margin-top:16px;"><a class="btn secondary" href="{{ url_for('superadmin_dashboard') }}">← Back to stores</a></p>
+{% endblock %}

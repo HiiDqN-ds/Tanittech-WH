@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Billing — {{ T.platform_name }}{% endblock %}
+{% block content %}
+<div class="page-header mb-4">
+  <h1 class="h4 mb-1"><i class="bi bi-credit-card"></i> Billing &amp; subscription</h1>
+  <p class="text-muted mb-0">{{ settings.shop_name if settings else '' }}</p>
+</div>
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    {% for msg in messages %}<div class="alert alert-info">{{ msg }}</div>{% endfor %}
+  {% endif %}
+{% endwith %}
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card" style="background:var(--surface-2); border:1px solid var(--line); border-radius:14px;">
+      <div class="card-body p-4">
+        <h5 class="mb-3">Current plan</h5>
+        {% if sub %}
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="fs-5 fw-semibold">{{ plans[sub.plan].name if sub.plan in plans else sub.plan }}</span>
+            <span class="badge {{ 'bg-success' if access_active else 'bg-danger' }}">
+              {{ sub.status }}
+            </span>
+          </div>
+          {% if sub.status == 'trialing' and sub.trial_ends_at %}
+            <p class="text-muted mb-1">Trial ends {{ sub.trial_ends_at.strftime('%d %b %Y') }}</p>
+          {% endif %}
+          {% if sub.current_period_end %}
+            <p class="text-muted mb-1">
+              {{ 'Renews' if not sub.cancel_at_period_end else 'Access ends' }}
+              {{ sub.current_period_end.strftime('%d %b %Y') }}
+            </p>
+          {% endif %}
+          <p class="text-muted" style="font-size:.85rem;">€{{ plans[sub.plan].price_eur if sub.plan in plans else '—' }}/month</p>
+        {% else %}
+          <p class="text-muted">No subscription on file yet.</p>
+        {% endif %}
+
+        <hr style="border-color:var(--line);">
+
+        {% if stripe_configured %}
+          {% if sub and sub.stripe_customer_id %}
+            <form method="POST" action="{{ url_for('billing.portal') }}">
+              <button class="btn w-100" style="background:var(--brand); color:var(--on-brand); font-weight:600;">
+                <i class="bi bi-gear"></i> Manage billing / change card
+              </button>
+            </form>
+          {% else %}
+            <form method="POST" action="{{ url_for('billing.checkout') }}">
+              <input type="hidden" name="plan" value="{{ sub.plan if sub else 'starter' }}">
+              <button class="btn w-100" style="background:var(--brand); color:var(--on-brand); font-weight:600;">
+                <i class="bi bi-credit-card"></i> Add payment method
+              </button>
+            </form>
+          {% endif %}
+        {% else %}
+          <p class="text-muted" style="font-size:.85rem;">
+            Card payments aren't configured on this deployment yet — set
+            <code>STRIPE_SECRET_KEY</code> and the plan price IDs in <code>.env</code>.
+          </p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card" style="background:var(--surface-2); border:1px solid var(--line); border-radius:14px;">
+      <div class="card-body p-4">
+        <h5 class="mb-3">Change plan</h5>
+        <div class="row g-2">
+          {% for key, plan in plans.items() %}
+          <div class="col-4">
+            <div class="p-3 h-100" style="border:1px solid var(--line); border-radius:12px; {{ 'border-color:var(--brand);' if sub and sub.plan == key }}">
+              <div class="fw-semibold">{{ plan.name }}</div>
+              <div class="fs-5" style="color:var(--brand);">€{{ plan.price_eur }}<small class="text-muted">/mo</small></div>
+              <div class="text-muted mb-2" style="font-size:.78rem;">{{ plan.blurb }}</div>
+              {% if not sub or sub.plan != key %}
+                <form method="POST" action="{{ url_for('billing.checkout') }}">
+                  <input type="hidden" name="plan" value="{{ key }}">
+                  <button class="btn btn-sm btn-outline-light w-100" {{ 'disabled' if not stripe_configured }}>Switch</button>
+                </form>
+              {% else %}
+                <span class="badge bg-secondary">Current</span>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-4" style="background:var(--surface-2); border:1px solid var(--line); border-radius:14px;">
+      <div class="card-body p-4">
+        <h5 class="mb-3"><i class="bi bi-shield-lock"></i> Your data</h5>
+        <p class="text-muted" style="font-size:.9rem;">
+          Export everything KassenPilot holds about your shop, or permanently delete your account and all its data.
+        </p>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('gdpr.export_data') }}" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-download"></i> Export my data (JSON)
+          </a>
+          <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal">
+            <i class="bi bi-trash"></i> Delete account
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="background:var(--surface-2); color:var(--ink);">
+      <div class="modal-body p-4">
+        <h5>Delete your account?</h5>
+        <p class="text-muted">This permanently deletes all shop data — products, sales, debts, everything. This cannot be undone.</p>
+        <form method="POST" action="{{ url_for('gdpr.delete_data') }}">
+          <label class="form-label">Type <strong>DELETE</strong> to confirm</label>
+          <input type="text" name="confirm" class="form-control mb-3" required>
+          <div class="d-flex gap-2 justify-content-end">
+            <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger">Delete everything</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

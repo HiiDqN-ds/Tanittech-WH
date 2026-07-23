@@ -1,0 +1,640 @@
+{% extends "base.html" %}
+{% block title %}{{ T.sell_item_page_title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4 sell-page">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h2 class="mb-0">{{ T.sell_item_heading }}</h2>
+    <span class="badge text-bg-light border" id="itemCountBadge">0</span>
+  </div>
+
+  <form method="POST" id="sellForm" novalidate>
+    <div class="mb-3">
+      <div class="assistant-suggest-wrap sell-search-wrap">
+        <input type="text" id="productSearch" class="form-control form-control-lg" autocomplete="off" placeholder="{{ T.sell_item_search_placeholder }}" autofocus>
+        <div class="assistant-suggest-list" id="productSearchSuggest" style="display:none;"></div>
+      </div>
+      <div class="row-error" id="topSearchFeedback" style="display:none;"></div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h4 class="mb-0">{{ T.sell_item_sold_products_heading }}</h4>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="clearAllBtn" style="display:none;">{{ T.sell_item_clear_all }}</button>
+        <button type="button" class="btn btn-outline-primary" onclick="addItemRow()">{{ T.sell_item_add_product_btn }}</button>
+      </div>
+    </div>
+
+    <div id="emptyStateHint" class="p-3 border rounded bg-light text-center text-muted mb-3">
+      {{ T.sell_item_empty_hint }}
+    </div>
+
+    <div id="itemsContainer" class="mb-3"></div>
+
+    <div class="sell-total-bar mb-3">
+      <span>{{ T.dash_total_price }}</span>
+      <span class="sell-total-amount">€<span id="totalPrice">0.00</span></span>
+    </div>
+
+    <div class="mb-3">
+      <label for="seller_username" class="form-label">{{ T.sell_item_seller_label }}</label>
+      <input type="text" id="seller_username" name="seller_username" class="form-control" value="{{ session.username }}" readonly required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label d-block">{{ T.debts_payment_method_label }}</label>
+      <div class="btn-group w-100" role="group" aria-label="{{ T.debts_payment_method_label }}">
+        <input type="radio" class="btn-check" name="payment_method" id="sellPayCash" value="cash" checked>
+        <label class="btn btn-outline-success" for="sellPayCash"><i class="bi bi-cash-coin"></i> {{ T.debts_payment_method_cash }}</label>
+        <input type="radio" class="btn-check" name="payment_method" id="sellPayCard" value="card" {% if not stripe_terminal.configured %}disabled{% endif %}>
+        <label class="btn btn-outline-success" for="sellPayCard"><i class="bi bi-credit-card"></i> {{ T.debts_payment_method_card }}</label>
+      </div>
+      {% if not stripe_terminal.configured %}
+      <div class="form-text">{{ T.stripe_not_configured }}</div>
+      {% endif %}
+      <input type="hidden" name="stripe_payment_intent_id" id="sellStripePaymentIntentId" value="">
+    </div>
+
+    <div id="sellCardReaderStatus" class="alert alert-info d-none" role="status"></div>
+
+    <button type="submit" class="btn btn-success btn-lg w-100" id="sellSubmitBtn" disabled>{{ T.sell_item_submit_btn }}</button>
+  </form>
+</div>
+
+<!-- Confirmation modal: replaces the old native confirm() popup with a
+     proper summary the person can review, and can always back out of. -->
+<div class="modal fade" id="sellConfirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{{ T.sell_item_confirm_title }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <ul class="list-group mb-3" id="sellConfirmList"></ul>
+        <div class="d-flex justify-content-between fs-5 fw-bold">
+          <span>{{ T.sell_item_confirm_total }}</span>
+          <span>€<span id="sellConfirmTotal">0.00</span></span>
+        </div>
+      </div>
+      <div class="modal-body pt-0">
+        <div id="sellConfirmCardStatus" class="alert alert-info d-none mb-0" role="status"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" id="sellConfirmCancelBtn">{{ T.sell_item_confirm_cancel }}</button>
+        <button type="button" class="btn btn-success" id="sellConfirmGoBtn">{{ T.sell_item_confirm_go }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.sell-row .assistant-suggest-wrap { position: relative; }
+.sell-search-wrap { position: relative; }
+.sell-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 0.75rem;
+  align-items: end;
+  padding: 0.9rem;
+  border: 1px solid var(--line, #e3e3e3);
+  border-radius: 10px;
+  background: var(--surface, #fff);
+  margin-bottom: 0.6rem;
+}
+.sell-row.has-error { border-color: var(--danger, #dc3545); background: rgba(220,53,69,0.04); }
+#topSearchFeedback { color: var(--danger, #dc3545); font-size: 0.8rem; margin-top: 0.35rem; }
+.sell-row.sell-row-bump { animation: sell-row-bump-flash 0.45s ease; }
+@keyframes sell-row-bump-flash {
+  0%   { background: var(--brand-soft, #E3F5F2); border-color: var(--brand, #12A594); }
+  100% { background: var(--surface, #fff); }
+}
+.sell-row .stock-badge { font-size: 0.72rem; padding: 0.15rem 0.45rem; border-radius: 999px; white-space: nowrap; }
+.sell-row .stock-badge.ok { background: #e7f5ea; color: #1e7a34; }
+.sell-row .stock-badge.low { background: #fff3cd; color: #8a6400; }
+.sell-row .stock-badge.bad { background: #fde2e1; color: #a3231d; }
+.sell-row .qty-stepper { display: flex; align-items: center; gap: 0.25rem; }
+.sell-row .qty-stepper button { width: 2rem; height: 2rem; border-radius: 6px; border: 1px solid var(--line, #ccc); background: #fff; font-weight: 700; line-height: 1; }
+.sell-row .qty-stepper input { width: 3.2rem; text-align: center; }
+.sell-row .row-subtotal { font-weight: 700; white-space: nowrap; min-width: 5.5rem; text-align: right; }
+.sell-row .row-error { grid-column: 1 / -1; color: var(--danger, #dc3545); font-size: 0.8rem; }
+.sell-total-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.9rem 1rem; border-radius: 10px;
+  background: var(--brand-gradient, linear-gradient(90deg,#0d6efd,#0aa2c0));
+  color: #fff; font-size: 1.15rem; font-weight: 700;
+}
+.sell-total-bar .sell-total-amount { font-size: 1.35rem; }
+@media (max-width: 700px) {
+  .sell-row { grid-template-columns: 1fr; }
+  .sell-row .row-subtotal { text-align: left; }
+}
+</style>
+
+{% if stripe_terminal.configured %}
+<script src="https://js.stripe.com/terminal/v1/"></script>
+<script src="{{ url_for('static', filename='js/stripe-terminal.js') }}"></script>
+{% endif %}
+
+<script>
+const itemsData = [
+  {% for item in items %}
+  {
+    barcode: "{{ item.barcode }}",
+    name: `{{ item.product_name | escape }}`,
+    price: {{ item.selling_price | default(0) }},
+    quantity: {{ item.quantity | default(0) }},
+    img: "{{ item.photo_link | default('') }}"
+  }{% if not loop.last %},{% endif %}
+  {% endfor %}
+];
+
+const i18n = {
+  noMatches: {{ T.items_none_found | tojson }},
+  noProductFound: {{ T.sell_item_no_product_found | tojson }},
+  stockLabel: {{ T.sell_item_stock_label | tojson }},
+  selectProductLabel: {{ T.sell_item_select_product_label | tojson }},
+  searchPlaceholder: {{ T.sell_item_search_placeholder | tojson }},
+  quantityLabel: {{ T.sell_item_quantity_label | tojson }},
+  changePriceLabel: {{ T.sell_item_change_price_label | tojson }},
+  newPriceLabel: {{ T.sell_item_new_price_label | tojson }},
+  removeBtn: {{ T.sell_item_remove_btn | tojson }},
+  notEnoughStock: {{ T.sell_item_not_enough_stock | tojson }},
+  itemsCountOne: {{ T.sell_item_items_count_one | tojson }},
+  itemsCountOther: {{ T.sell_item_items_count_other | tojson }},
+  submitting: {{ T.sell_item_submitting | tojson }},
+  submitLabel: {{ T.sell_item_submit_btn | tojson }},
+  cardReaderDiscovering: {{ T.stripe_status_reader_discovering | tojson }},
+  cardReaderConnecting: {{ T.stripe_status_reader_connecting | tojson }},
+  cardCreatingIntent: {{ T.stripe_status_creating_intent | tojson }},
+  cardPresentCard: {{ T.stripe_status_present_card | tojson }},
+  cardProcessing: {{ T.stripe_status_processing | tojson }},
+  cardErrorPrefix: {{ T.stripe_status_error_prefix | tojson }},
+  cardNotConfigured: {{ T.stripe_not_configured | tojson }},
+};
+
+window.STRIPE_TERMINAL_CONFIG = {{ stripe_terminal | tojson }};
+
+let rowIndexCounter = 0;
+
+function debounce(fn, delay) {
+  let timer = null;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
+function fmt(n) { return (Number(n) || 0).toFixed(2); }
+
+function stockClass(qty) {
+  if (qty <= 0) return 'bad';
+  if (qty <= 5) return 'low';
+  return 'ok';
+}
+
+function refreshEmptyState() {
+  const rows = document.querySelectorAll('#itemsContainer .sell-row');
+  const empty = document.getElementById('emptyStateHint');
+  const clearBtn = document.getElementById('clearAllBtn');
+  empty.style.display = rows.length ? 'none' : 'block';
+  clearBtn.style.display = rows.length ? 'inline-block' : 'none';
+
+  const badge = document.getElementById('itemCountBadge');
+  const total = Array.from(rows).reduce((sum, r) => sum + (parseInt(r.querySelector('[data-role="qty"]').value) || 0), 0);
+  badge.textContent = total === 1 ? i18n.itemsCountOne : i18n.itemsCountOther.replace('{n}', total);
+}
+
+function addItemRow(barcodeToSelect = '') {
+  // Resolve what was scanned/typed to an actual product. Accepts an exact
+  // barcode match (case-insensitive) or an exact product-name match, since
+  // manual entry might be either.
+  let preselected = null;
+  if (barcodeToSelect) {
+    const code = barcodeToSelect.trim().toLowerCase();
+    preselected = itemsData.find(i => i.barcode.toLowerCase() === code || i.name.toLowerCase() === code) || null;
+    if (!preselected) {
+      const feedback = document.getElementById('topSearchFeedback');
+      if (feedback) {
+        feedback.textContent = i18n.noProductFound.replace('{q}', barcodeToSelect);
+        feedback.style.display = 'block';
+        clearTimeout(feedback._hideTimer);
+        feedback._hideTimer = setTimeout(() => { feedback.style.display = 'none'; }, 3000);
+      }
+      return; // nothing to add — don't create a blank/dead row
+    }
+    barcodeToSelect = preselected.barcode; // normalize casing for the dedupe check below
+  }
+
+  // If this exact product is already in the cart, treat a repeat scan/
+  // selection as "add one more" instead of creating a second row for the
+  // same item — this is the common case when a customer is buying several
+  // units of the same product one at a time.
+  if (barcodeToSelect) {
+    const existingRow = Array.from(document.querySelectorAll('#itemsContainer .sell-row'))
+      .find(r => {
+        const bc = r.querySelector('[id$="_barcode"]');
+        return bc && bc.value === barcodeToSelect;
+      });
+    if (existingRow) {
+      const qtyInput = existingRow.querySelector('[data-role="qty"]');
+      qtyInput.value = (parseInt(qtyInput.value) || 0) + 1;
+      qtyInput.dispatchEvent(new Event('input'));
+      existingRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      existingRow.classList.add('sell-row-bump');
+      setTimeout(() => existingRow.classList.remove('sell-row-bump'), 450);
+      return;
+    }
+  }
+
+  const container = document.getElementById('itemsContainer');
+  const rowIndex = rowIndexCounter++;
+
+  const row = document.createElement('div');
+  row.className = 'sell-row';
+  row.dataset.index = rowIndex;
+
+  row.innerHTML = `
+    <div>
+      <div class="assistant-suggest-wrap">
+        <input type="text" id="items_${rowIndex}_search" class="form-control" autocomplete="off"
+               placeholder="${i18n.searchPlaceholder}"
+               value="${preselected ? preselected.name : ''}" required>
+        <div class="assistant-suggest-list" style="display:none;"></div>
+      </div>
+
+      <input type="hidden" name="items[${rowIndex}][barcode]" id="items_${rowIndex}_barcode" value="${preselected ? preselected.barcode : ''}">
+      <div class="d-flex align-items-center gap-2 mt-1">
+        <span class="stock-badge" data-role="stock-badge" style="display:none;"></span>
+        <div class="form-check form-switch mb-0">
+          <input class="form-check-input" type="checkbox" id="items_${rowIndex}_discount_active" name="items[${rowIndex}][discount_active]">
+          <label class="form-check-label small" for="items_${rowIndex}_discount_active">${i18n.changePriceLabel}</label>
+        </div>
+      </div>
+      <input type="number" step="0.01" name="items[${rowIndex}][price]" id="items_${rowIndex}_price" class="form-control form-control-sm mt-1" style="max-width:8rem;" disabled placeholder="${i18n.newPriceLabel}">
+    </div>
+    <div class="qty-stepper">
+      <button type="button" data-role="qty-minus" aria-label="-">−</button>
+      <input type="number" min="1" value="1" name="items[${rowIndex}][quantity]" id="items_${rowIndex}_quantity" data-role="qty" class="form-control">
+      <button type="button" data-role="qty-plus" aria-label="+">+</button>
+    </div>
+    <div class="row-subtotal" data-role="subtotal">€0.00</div>
+    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeItemRow(this)">${i18n.removeBtn}</button>
+    <div class="row-error" data-role="row-error" style="display:none;"></div>
+  `;
+
+  container.appendChild(row);
+  const searchInput = row.querySelector(`#items_${rowIndex}_search`);
+  const barcodeInput = row.querySelector(`#items_${rowIndex}_barcode`);
+  const suggestList = row.querySelector('.assistant-suggest-list');
+  const quantityInput = row.querySelector(`#items_${rowIndex}_quantity`);
+  const discountCheckbox = row.querySelector(`#items_${rowIndex}_discount_active`);
+  const priceInput = row.querySelector(`#items_${rowIndex}_price`);
+  const stockBadge = row.querySelector('[data-role="stock-badge"]');
+  const rowError = row.querySelector('[data-role="row-error"]');
+  const qtyMinus = row.querySelector('[data-role="qty-minus"]');
+  const qtyPlus = row.querySelector('[data-role="qty-plus"]');
+
+  function currentItem() {
+    return itemsData.find(i => i.barcode === barcodeInput.value) || null;
+  }
+
+  function validateRow() {
+    const item = currentItem();
+    const qty = parseInt(quantityInput.value) || 0;
+    row.classList.remove('has-error');
+    rowError.style.display = 'none';
+    if (item) {
+      stockBadge.style.display = 'inline-block';
+      stockBadge.className = 'stock-badge ' + stockClass(item.quantity);
+      stockBadge.textContent = `${i18n.stockLabel}: ${item.quantity}`;
+      if (qty > item.quantity) {
+        row.classList.add('has-error');
+        rowError.style.display = 'block';
+        rowError.textContent = i18n.notEnoughStock.replace('{n}', item.quantity);
+      }
+    } else {
+      stockBadge.style.display = 'none';
+    }
+    updateTotalPrice();
+  }
+
+  function applySelectedItem(item) {
+    if (!item) return;
+
+    // If this exact product already lives in a *different* row, merge
+    // into it (bump its quantity) instead of leaving two rows for the
+    // same product — same rule as the top search bar.
+    const duplicateRow = Array.from(document.querySelectorAll('#itemsContainer .sell-row'))
+      .find(r => r !== row && r.querySelector('[id$="_barcode"]')?.value === item.barcode);
+    if (duplicateRow) {
+      const qtyInput = duplicateRow.querySelector('[data-role="qty"]');
+      qtyInput.value = (parseInt(qtyInput.value) || 0) + (parseInt(quantityInput.value) || 1);
+      qtyInput.dispatchEvent(new Event('input'));
+      duplicateRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      duplicateRow.classList.add('sell-row-bump');
+      setTimeout(() => duplicateRow.classList.remove('sell-row-bump'), 450);
+      row.remove();
+      updateTotalPrice();
+      return;
+    }
+
+    searchInput.value = item.name;
+    barcodeInput.value = item.barcode;
+    discountCheckbox.checked = false;
+    priceInput.disabled = true;
+    priceInput.value = item.price.toFixed(2);
+    validateRow();
+  }
+
+  if (preselected) { priceInput.value = preselected.price.toFixed(2); validateRow(); }
+
+  function hideSuggestions() {
+    suggestList.style.display = 'none';
+    suggestList.innerHTML = '';
+  }
+
+  function renderSuggestions(matches) {
+    if (!matches.length) {
+      suggestList.innerHTML = `<div class="assistant-suggest-item" style="cursor:default;color:var(--ink-soft);">${i18n.noMatches}</div>`;
+      suggestList.style.display = 'block';
+      return;
+    }
+    suggestList.innerHTML = '';
+    matches.forEach((item) => {
+      const optRow = document.createElement('div');
+      optRow.className = 'assistant-suggest-item';
+      const warning = item.quantity <= 5 ? '⚠️ ' : '';
+      optRow.innerHTML = `
+        <span class="name">${warning}${item.name}</span>
+        <span class="meta">${i18n.stockLabel}: ${item.quantity} · €${item.price.toFixed(2)}</span>
+      `;
+      optRow.addEventListener('click', () => {
+        applySelectedItem(item);
+        if (row.isConnected) {
+          hideSuggestions();
+          quantityInput.focus();
+          quantityInput.select();
+        }
+      });
+      suggestList.appendChild(optRow);
+    });
+    suggestList.style.display = 'block';
+  }
+
+  const lookup = debounce((query) => {
+    const q = query.trim().toLowerCase();
+    barcodeInput.value = ''; // typing again invalidates the previous selection
+    if (!q) { hideSuggestions(); validateRow(); return; }
+    const matches = itemsData.filter((item) =>
+      item.name.toLowerCase().includes(q) || item.barcode.toLowerCase().includes(q)
+    ).slice(0, 8);
+    renderSuggestions(matches);
+    validateRow();
+  }, 150);
+
+  searchInput.addEventListener('input', () => lookup(searchInput.value));
+  searchInput.addEventListener('focus', () => { if (searchInput.value.trim()) lookup(searchInput.value); });
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const code = searchInput.value.trim().toLowerCase();
+    if (!code) return;
+    const match = itemsData.find(i => i.barcode.toLowerCase() === code || i.name.toLowerCase() === code);
+    if (match) {
+      applySelectedItem(match);
+      if (row.isConnected) { // false if applySelectedItem merged & removed this row
+        hideSuggestions();
+        quantityInput.focus();
+        quantityInput.select();
+      }
+    } else {
+      rowError.style.display = 'block';
+      rowError.textContent = i18n.noProductFound.replace('{q}', searchInput.value.trim());
+    }
+  });
+  document.addEventListener('click', (e) => {
+    if (!row.contains(e.target)) hideSuggestions();
+  });
+
+  discountCheckbox.addEventListener('change', () => {
+    const item = currentItem();
+    if (discountCheckbox.checked) {
+      priceInput.disabled = false;
+      priceInput.focus();
+    } else {
+      priceInput.disabled = true;
+      priceInput.value = item ? item.price.toFixed(2) : '';
+    }
+    updateTotalPrice();
+  });
+
+  qtyMinus.addEventListener('click', () => {
+    quantityInput.value = Math.max(1, (parseInt(quantityInput.value) || 1) - 1);
+    validateRow();
+  });
+  qtyPlus.addEventListener('click', () => {
+    quantityInput.value = (parseInt(quantityInput.value) || 0) + 1;
+    validateRow();
+  });
+
+  quantityInput.addEventListener('input', validateRow);
+  priceInput.addEventListener('input', updateTotalPrice);
+
+  validateRow();
+}
+
+function removeItemRow(button) {
+  button.closest('.sell-row').remove();
+  updateTotalPrice();
+}
+
+document.getElementById('clearAllBtn').addEventListener('click', () => {
+  document.getElementById('itemsContainer').innerHTML = '';
+  updateTotalPrice();
+});
+
+function updateTotalPrice() {
+  const rows = document.querySelectorAll('#itemsContainer .sell-row');
+  let total = 0;
+  let hasError = false;
+  let hasValidRow = false;
+
+  rows.forEach(row => {
+    const idx = row.dataset.index;
+    const quantity = parseInt(document.querySelector(`#items_${idx}_quantity`).value) || 0;
+    const price = parseFloat(document.querySelector(`#items_${idx}_price`).value) || 0;
+    const barcode = document.querySelector(`#items_${idx}_barcode`).value;
+    const subtotal = price * quantity;
+    const subtotalEl = row.querySelector('[data-role="subtotal"]');
+    if (subtotalEl) subtotalEl.textContent = '€' + fmt(subtotal);
+    total += subtotal;
+    if (row.classList.contains('has-error')) hasError = true;
+    if (barcode && quantity > 0) hasValidRow = true;
+  });
+
+  document.getElementById('totalPrice').textContent = fmt(total);
+  document.getElementById('sellSubmitBtn').disabled = !hasValidRow || hasError || rows.length === 0;
+  refreshEmptyState();
+}
+
+// Single search bar: handles three ways to add a product —
+// 1) a physical barcode scanner "typing" a code fast and sending Enter
+// 2) manually typing a barcode/name and pressing Enter
+// 3) typing a name and clicking one of the live suggestions below
+const productSearch = document.getElementById('productSearch');
+const productSearchSuggest = document.getElementById('productSearchSuggest');
+
+productSearch.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const scanned = productSearch.value.trim();
+    if (scanned) {
+      addItemRow(scanned);
+      productSearch.value = '';
+      productSearchSuggest.style.display = 'none';
+      productSearchSuggest.innerHTML = '';
+      productSearch.focus(); // keeps focus for the next scan
+    }
+  }
+});
+
+const topSearchLookup = debounce((query) => {
+  const q = query.trim().toLowerCase();
+  if (!q) { productSearchSuggest.style.display = 'none'; productSearchSuggest.innerHTML = ''; return; }
+  const matches = itemsData.filter((item) =>
+    item.name.toLowerCase().includes(q) || item.barcode.toLowerCase().includes(q)
+  ).slice(0, 8);
+  if (!matches.length) {
+    productSearchSuggest.innerHTML = `<div class="assistant-suggest-item" style="cursor:default;color:var(--ink-soft);">${i18n.noMatches}</div>`;
+  } else {
+    productSearchSuggest.innerHTML = '';
+    matches.forEach((item) => {
+      const optRow = document.createElement('div');
+      optRow.className = 'assistant-suggest-item';
+      const warning = item.quantity <= 5 ? '⚠️ ' : '';
+      optRow.innerHTML = `
+        <span class="name">${warning}${item.name}</span>
+        <span class="meta">${i18n.stockLabel}: ${item.quantity} · €${item.price.toFixed(2)}</span>
+      `;
+      optRow.addEventListener('click', () => {
+        addItemRow(item.barcode);
+        productSearch.value = '';
+        productSearchSuggest.style.display = 'none';
+        productSearchSuggest.innerHTML = '';
+      });
+      productSearchSuggest.appendChild(optRow);
+    });
+  }
+  productSearchSuggest.style.display = 'block';
+}, 150);
+productSearch.addEventListener('input', () => topSearchLookup(productSearch.value));
+document.addEventListener('click', (e) => {
+  if (!productSearch.contains(e.target) && !productSearchSuggest.contains(e.target)) {
+    productSearchSuggest.style.display = 'none';
+  }
+});
+
+// Confirmation modal: shows a clear summary of what's about to be sold and
+// lets the person back out (or edit) instead of losing their work.
+const sellConfirmModalEl = document.getElementById('sellConfirmModal');
+const sellConfirmModal = new bootstrap.Modal(sellConfirmModalEl);
+const sellForm = document.getElementById('sellForm');
+let submitConfirmed = false;
+
+sellForm.addEventListener('submit', function(event) {
+  if (submitConfirmed) return; // second, programmatic submit after confirmation
+  event.preventDefault();
+
+  const rows = document.querySelectorAll('#itemsContainer .sell-row');
+  const list = document.getElementById('sellConfirmList');
+  list.innerHTML = '';
+  let total = 0;
+  rows.forEach(row => {
+    const idx = row.dataset.index;
+    const name = document.querySelector(`#items_${idx}_search`).value;
+    const quantity = parseInt(document.querySelector(`#items_${idx}_quantity`).value) || 0;
+    const price = parseFloat(document.querySelector(`#items_${idx}_price`).value) || 0;
+    const subtotal = price * quantity;
+    total += subtotal;
+    const li = document.createElement('li');
+    li.className = 'list-group-item d-flex justify-content-between';
+    li.innerHTML = `<span>${quantity} × ${name}</span><span>€${fmt(subtotal)}</span>`;
+    list.appendChild(li);
+  });
+  document.getElementById('sellConfirmTotal').textContent = fmt(total);
+  sellConfirmModal.show();
+});
+
+const sellConfirmGoBtn = document.getElementById('sellConfirmGoBtn');
+const sellConfirmCancelBtn = document.getElementById('sellConfirmCancelBtn');
+const sellConfirmCardStatus = document.getElementById('sellConfirmCardStatus');
+
+function setCardStatus(text, isError) {
+  if (!text) {
+    sellConfirmCardStatus.classList.add('d-none');
+    sellConfirmCardStatus.textContent = '';
+    return;
+  }
+  sellConfirmCardStatus.classList.remove('d-none', 'alert-info', 'alert-danger');
+  sellConfirmCardStatus.classList.add(isError ? 'alert-danger' : 'alert-info');
+  sellConfirmCardStatus.textContent = text;
+}
+
+function finalizeSubmit() {
+  submitConfirmed = true;
+  sellConfirmModal.hide();
+  const submitBtn = document.getElementById('sellSubmitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = i18n.submitting;
+  sellForm.submit();
+}
+
+sellConfirmGoBtn.addEventListener('click', () => {
+  const isCard = document.getElementById('sellPayCard').checked;
+
+  if (!isCard) {
+    finalizeSubmit();
+    return;
+  }
+
+  if (!window.StripeTerminalPay || !window.STRIPE_TERMINAL_CONFIG || !window.STRIPE_TERMINAL_CONFIG.configured) {
+    setCardStatus(i18n.cardNotConfigured, true);
+    return;
+  }
+
+  const total = parseFloat(document.getElementById('sellConfirmTotal').textContent) || 0;
+  sellConfirmGoBtn.disabled = true;
+  sellConfirmCancelBtn.disabled = true;
+
+  const statusLabels = {
+    reader_discovering: i18n.cardReaderDiscovering,
+    reader_connecting: i18n.cardReaderConnecting,
+    creating_intent: i18n.cardCreatingIntent,
+    present_card: i18n.cardPresentCard,
+    processing: i18n.cardProcessing,
+  };
+
+  StripeTerminalPay.collectPayment(total, { context: 'sale', reference: 'new-sale' }, {
+    onStatus: (key) => setCardStatus(statusLabels[key] || key, false),
+  }).then((paymentIntentId) => {
+    document.getElementById('sellStripePaymentIntentId').value = paymentIntentId;
+    setCardStatus('', false);
+    finalizeSubmit();
+  }).catch((err) => {
+    setCardStatus(i18n.cardErrorPrefix + ' ' + err.message, true);
+    sellConfirmGoBtn.disabled = false;
+    sellConfirmCancelBtn.disabled = false;
+  });
+});
+
+updateTotalPrice();
+
+// Show success/error popup messages after submission
+{% if error_msg %}
+  alert("{{ error_msg|escape }}");
+{% elif success_msg %}
+  alert("{{ success_msg|escape }}");
+{% endif %}
+</script>
+{% endblock %}

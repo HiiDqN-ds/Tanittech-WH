@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}{{ T.sales_history_title }}{% endblock %}
+
+{% block content %}
+<h2>{{ T.sales_history_heading }}</h2>
+
+<input type="text" id="searchInput" class="form-control mb-3" placeholder="{{ T.sales_search_placeholder }}" onkeyup="filterOrders()">
+
+<div id="sales-container">
+  {% for order in sales %}
+    <div class="card mb-4 p-3 shadow-sm">
+      <h5><strong>{{ T.sales_seller_label }}</strong> {{ order.user }}</h5>
+      <p><strong>{{ T.common_date }}:</strong> {{ order.date | format_date_str }}</p>
+
+      <div class="table-responsive">
+        <table class="table table-bordered align-middle data-table">
+          <thead class="table-light">
+            <tr>
+              <th>{{ T.sales_product_header }}</th>
+              <th>{{ T.common_barcode }}</th>
+              <th>{{ T.common_quantity }}</th>
+              <th>{{ T.sales_unit_price_header }}</th>
+              <th>{{ T.sales_total_header }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in order.get("items", []) %}
+            <tr>
+              <td>{{ item.product_name }}</td>
+              <td>{{ item.barcode }}</td>
+              <td>{{ item.quantity }}</td>
+              <td>{{ "%.2f"|format(item.sale_price|float) }} €</td>
+              <td>{{ "%.2f"|format(item.total_price|float) }} €</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center">
+        <h5>{{ T.sales_total_sum_label }} <span style="color: green;">€{{ "%.2f"|format(order.total_order_price|float) }}</span></h5>
+        <button onclick='showReceiptInPopup({{ order | tojson | safe }})'
+                class="btn btn-sm btn-primary" title="{{ T.sales_receipt_title }}">
+          <i class="bi bi-receipt"></i> {{ T.sales_receipt_btn }}
+        </button>
+
+      </div>
+    </div>
+  {% else %}
+    <p class="text-center">{{ T.sales_none_found }}</p>
+  {% endfor %}
+</div>
+
+<script>
+const i18n = {
+  productHeader: {{ T.sales_product_header | tojson }},
+  barcodeHeader: {{ T.common_barcode | tojson }},
+  quantityHeader: {{ T.common_quantity | tojson }},
+  unitPriceHeader: {{ T.sales_unit_price_header | tojson }},
+  totalHeader: {{ T.sales_total_header | tojson }},
+  unknown: {{ T.dash_unknown | tojson }},
+  receiptPageTitle: {{ T.sales_receipt_page_title | tojson }},
+  sellerLabel: {{ T.sales_seller_label | tojson }},
+  dateLabel: {{ T.common_date | tojson }},
+  totalSumLabel: {{ T.sales_total_sum_label | tojson }},
+  thankYou: {{ T.sales_thank_you | tojson }},
+  receiptError: {{ T.sales_receipt_error | tojson }}
+};
+
+function filterOrders() {
+  const input = document.getElementById("searchInput").value.toLowerCase();
+  const orders = document.querySelectorAll("#sales-container .card");
+
+  orders.forEach(order => {
+    const text = order.textContent.toLowerCase();
+    order.style.display = text.includes(input) ? "" : "none";
+  });
+}
+
+function showReceiptInPopup(order) {
+  try {
+    let itemsHTML = "";
+    order.items.forEach(item => {
+      itemsHTML += `
+        <tr>
+          <td>${item.product_name}</td>
+          <td>${item.barcode}</td>
+          <td>${item.quantity}</td>
+          <td>${Number(item.sale_price).toFixed(2)} €</td>
+          <td>${Number(item.total_price).toFixed(2)} €</td>
+        </tr>`;
+    });
+
+    const dateFormatted = order.date
+      ? order.date.replace("T", " ").slice(0, 19)
+      : i18n.unknown;
+
+    const receiptHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${i18n.receiptPageTitle}</title>
+        <style>
+          body { font-family: Arial; padding: 20px; }
+          .header { display: flex; align-items: center; }
+          .header img { height: 60px; margin-right: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          td, th { border: 1px solid #ccc; padding: 8px; }
+          h3, h4 { margin-bottom: 10px; }
+        </style>
+      </head>
+      <body onload="window.print()">
+        <div class="header">
+          <img src="${location.origin}/static/images/logo.png" alt="Logo">
+          <div>
+            <h3>Meine Firma</h3>
+            <p>Musterstraße 1, 12345 Musterstadt</p>
+          </div>
+        </div>
+        <hr>
+        <h4>${i18n.sellerLabel} ${order.user}</h4>
+        <p><strong>${i18n.dateLabel}:</strong> ${dateFormatted}</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>${i18n.productHeader}</th>
+              <th>${i18n.barcodeHeader}</th>
+              <th>${i18n.quantityHeader}</th>
+              <th>${i18n.unitPriceHeader}</th>
+              <th>${i18n.totalHeader}</th>
+            </tr>
+          </thead>
+          <tbody>${itemsHTML}</tbody>
+        </table>
+
+        <h4 style="text-align: right;">${i18n.totalSumLabel} <span style="color: green;">€${Number(order.total_order_price).toFixed(2)}</span></h4>
+        <p style="text-align:right;">${i18n.thankYou}</p>
+      </body>
+      </html>
+    `;
+
+    const popup = window.open('', '_blank', 'width=800,height=600');
+    popup.document.write(receiptHTML);
+    popup.document.close();
+  } catch (err) {
+    console.error("Error displaying receipt:", err);
+    alert(i18n.receiptError);
+  }
+}
+</script>
+{% endblock %}

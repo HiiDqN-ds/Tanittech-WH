@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ T.kasse_edit_title }}{% endblock %}
+
+{% block content %}
+<h2>{{ T.kasse_edit_title }}</h2>
+
+<form method="post">
+  <div class="mb-3">
+    <label class="form-label">{{ T.kasse_type_label }}</label>
+    <select name="typ" class="form-control" required>
+      <option value="einzahlung" {{ 'selected' if transaction.type == 'einzahlung' }}>{{ T.kasse_type_deposit }}</option>
+      <option value="auszahlung" {{ 'selected' if transaction.type == 'auszahlung' }}>{{ T.kasse_type_withdrawal }}</option>
+    </select>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">{{ T.common_amount }}</label>
+    <input type="number" step="0.01" min="0.01" name="betrag" class="form-control" value="{{ transaction.amount }}" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">{{ T.kasse_description_label }}</label>
+    <input type="text" name="beschreibung" class="form-control" value="{{ transaction.description or '' }}">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">{{ T.debts_payment_method_label }}</label>
+    <select name="payment_method" class="form-control">
+      <option value="cash" {{ 'selected' if (transaction.payment_method or 'cash') == 'cash' }}>{{ T.debts_payment_method_cash }}</option>
+      <option value="card" {{ 'selected' if transaction.payment_method == 'card' }}>{{ T.debts_payment_method_card }}</option>
+    </select>
+  </div>
+  <button type="submit" class="btn btn-success">{{ T.common_update }}</button>
+  <a href="{{ url_for('kasse') }}" class="btn btn-secondary">{{ T.common_cancel }}</a>
+</form>
+{% endblock %}

@@ -1,0 +1,66 @@
+[1mdiff --git a/home/templates/home/index.html b/home/templates/home/index.html[m
+[1mindex 6155f0a..3792121 100644[m
+[1m--- a/home/templates/home/index.html[m
+[1m+++ b/home/templates/home/index.html[m
+[36m@@ -49,20 +49,7 @@[m
+         <a href="#services" class="hover:text-blue-600 transition">{% trans "Services" %}</a>[m
+         <a href="#contact" class="hover:text-blue-600 transition">{% trans "Contact" %}</a>[m
+ [m
+[31m-        <!-- Search Box for Tracking -->[m
+[31m-        <div class="flex items-center bg-gray-100 rounded-lg px-3 py-2 border border-gray-300 hover:border-blue-500 transition">[m
+[31m-          <input type="text" id="trackingSearch" placeholder="{% trans 'Tracking ID' %}" class="bg-transparent outline-none text-sm w-32 placeholder-gray-400">[m
+[31m-          <button type="button" onclick="searchTracking()" class="ml-2 text-gray-600 hover:text-blue-600">[m
+[31m-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">[m
+[31m-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>[m
+[31m-            </svg>[m
+[31m-          </button>[m
+[31m-        </div>[m
+[31m-[m
+[31m-        <button id="openTrackModal" type="button"[m
+[31m-          class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition shadow">[m
+[31m-          {% trans "Track Repair" %}[m
+[31m-        </button>[m
+[32m+[m[32m        <!-- Tracking controls moved to the first hero section -->[m
+ [m
+         <!-- LANGUAGE DROPDOWN -->[m
+         <div class="relative" id="langDropdown">[m
+[36m@@ -106,7 +93,7 @@[m
+       <a href="#services" class="block">{% trans "Services" %}</a>[m
+       <a href="#contact" class="block">{% trans "Contact" %}</a>[m
+       [m
+[31m-      <!-- Track Repair Button -->[m
+[32m+[m[32m      <!-- Track Repair Button (kept, triggers the same tracking modal) -->[m
+       <button id="openTrackModalMobile" type="button"[m
+         class="w-full px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition shadow text-left">[m
+         {% trans "Track Repair" %}[m
+[36m@@ -137,9 +124,29 @@[m
+   [m
+             <div class="swiper-slide bg-[url('media/images/slider/slide2.jpg')] bg-center bg-cover flex flex-col justify-center items-center text-white text-center px-4">[m
+                 <div class="absolute inset-0 bg-black/40"></div>[m
+[31m-                <div class="relative z-10 animate-fadeIn">[m
+[32m+[m[32m                <div class="relative z-10 animate-fadeIn flex flex-col items-center">[m
+                     <h2 class="text-4xl sm:text-5xl md:text-6xl font-bold drop-shadow-lg">{% trans "Expert Laptop Repairs" %}</h2>[m
+                     <p class="mt-4 text-lg sm:text-xl md:text-2xl drop-shadow-lg">{% trans "We fix hardware, software, and virus issues fast." %}</p>[m
+[32m+[m
+[32m+[m[32m                    <!-- Centered tracking box (moved from header) -->[m
+[32m+[m[32m                    <div class="mt-8 w-full max-w-xl">[m
+[32m+[m[32m                      <div class="mx-auto bg-white/10 backdrop-blur rounded-2xl border border-white/20 shadow-lg px-4 py-4 sm:py-5">[m
+[32m+[m[32m                        <div class="flex flex-col sm:flex-row gap-3 sm:items-center justify-center">[m
+[32m+[m[32m                          <input type="text" id="trackingSearch" placeholder="{% trans 'Tracking ID' %}" class="flex-1 bg-white/90 text-gray-800 rounded-lg px-4 py-3 outline-none border border-white/50 focus:ring-2 focus:ring-blue-500 placeholder-gray-400">[m
+[32m+[m[32m                          <button type="button" onclick="searchTracking()" class="sm:w-auto px-5 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition shadow font-semibold">[m
+[32m+[m[32m                            <span class="inline-flex items-center gap-2">[m
+[32m+[m[32m                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">[m
+[32m+[m[32m                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>[m
+[32m+[m[32m                              </svg>[m
+[32m+[m[32m                              {% trans "Track" %}[m
+[32m+[m[32m                            </span>[m
+[32m+[m[32m                          </button>[m
+[32m+[m[32m                          <!-- removed tracking (blue) button; tracking still works via the Track input button -->[m
+[32m+[m[32m                        </div>[m
+[32m+[m[32m                        <p class="mt-2 text-xs sm:text-sm text-white/90 text-center">{% trans "Enter your tracking ID to check the current status." %}</p>[m
+[32m+[m[32m                      </div>[m
+[32m+[m[32m                    </div>[m
+[32m+[m
+                     <a href="javascript:void(0)" class="mt-8 inline-block bg-blue-600 px-6 py-3 rounded-lg text-white font-semibold hover:bg-blue-700 transition openModalBtn">{% trans "Book Now" %}</a>[m
+                 </div>[m
+             </div>[m

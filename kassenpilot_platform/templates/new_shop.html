@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width:480px;">
+  <h2 style="margin-top:0;">New subscription</h2>
+  <p class="muted" style="font-size:13px; margin-top:-8px;">Creates the shop and its admin account, activated immediately — no payment needed for the Test plan.</p>
+  <form method="post" enctype="multipart/form-data">
+    <label>Store name</label>
+    <input name="shop_name" value="{{ form.shop_name or '' }}" required>
+
+    <label>Store logo (optional)</label>
+    <input type="file" name="logo" accept="image/*">
+
+    <label>Plan</label>
+    <select name="plan">
+      {% for key, p in plans.items() %}
+      <option value="{{ key }}" {% if form.plan == key %}selected{% endif %}>{{ p.name }} — €{{ p.price_eur }}/mo{% if p.price_eur == 0 %} (instant, no payment){% endif %}</option>
+      {% endfor %}
+    </select>
+
+    <label>Admin username</label>
+    <input name="admin_username" value="{{ form.admin_username or '' }}" required>
+
+    <label>Admin password</label>
+    <input type="password" name="admin_password" required>
+
+    <button class="btn" type="submit">Create & activate</button>
+    <a class="btn secondary" href="{{ url_for('superadmin_dashboard') }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

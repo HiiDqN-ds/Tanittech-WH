@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ T.audit_log_title }}{% endblock %}
+
+{% block content %}
+<h2>{{ T.audit_log_title }}</h2>
+<p class="text-muted">{{ T.audit_log_subtitle }}</p>
+
+<div class="mb-3 d-flex gap-2 flex-wrap">
+  <a href="{{ url_for('admin_audit_log') }}" class="btn btn-sm {{ 'btn-primary' if not module_filter and not entity_filter else 'btn-outline-primary' }}">{{ T.audit_log_filter_all }}</a>
+  {% for m in ['sales', 'purchases', 'inventory', 'debts', 'customers', 'cash', 'salaries', 'sellers', 'invoices', 'auth', 'assistant'] %}
+    <a href="{{ url_for('admin_audit_log', module=m) }}" class="btn btn-sm {{ 'btn-primary' if module_filter == m else 'btn-outline-secondary' }}">{{ m }}</a>
+  {% endfor %}
+</div>
+
+<!-- Free-text search (search_audit_log() in db.py): matches action, entity,
+     actor, source, or details — combines with the module/entity buttons
+     above, and reaches beyond just the latest 300 entries shown by
+     default the way a client-side-only filter would be limited to. -->
+<form method="get" class="mb-3" id="auditSearchForm">
+  {% if module_filter %}<input type="hidden" name="module" value="{{ module_filter }}">{% endif %}
+  {% if entity_filter %}<input type="hidden" name="entity" value="{{ entity_filter }}">{% endif %}
+  <div class="input-group">
+    <span class="input-group-text"><i class="bi bi-search"></i></span>
+    <input type="text" name="q" class="form-control" placeholder="{{ T.audit_log_search_placeholder }}"
+           value="{{ search_query or '' }}" autocomplete="off">
+    {% if search_query %}
+    <a href="{{ url_for('admin_audit_log', module=module_filter, entity=entity_filter) }}" class="btn btn-outline-secondary" title="{{ T.common_cancel }}">
+      <i class="bi bi-x-lg"></i>
+    </a>
+    {% endif %}
+  </div>
+</form>
+
+{% if entries %}
+<div class="table-responsive">
+  <table class="table table-striped table-sm data-table">
+    <thead>
+      <tr>
+        <th>{{ T.audit_log_col_time }}</th>
+        <th>{{ T.audit_log_col_actor }}</th>
+        <th>{{ T.audit_log_col_action }}</th>
+        <th>{{ T.audit_log_col_module }}</th>
+        <th>{{ T.audit_log_col_entity }}</th>
+        <th>{{ T.audit_log_col_source }}</th>
+        <th>{{ T.audit_log_col_details }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in entries %}
+      <tr>
+        <td>{{ e.created_at.strftime('%Y-%m-%d %H:%M') if e.created_at else '-' }}</td>
+        <td>{{ e.actor or '-' }}</td>
+        <td><span class="badge bg-secondary">{{ e.action }}</span></td>
+        <td>{{ e.module or '-' }}</td>
+        <td>{{ e.entity }}{% if e.entity_id %} #{{ e.entity_id }}{% endif %}</td>
+        <td>{{ e.source }}</td>
+        <td><pre class="mb-0" style="white-space: pre-wrap; font-size: 0.8em;">{{ e.details or '' }}</pre></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p>{{ T.audit_log_none }}</p>
+{% endif %}
+{% endblock %}

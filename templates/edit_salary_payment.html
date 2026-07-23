@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ T.salary_edit_title }}{% endblock %}
+
+{% block content %}
+<h2>{{ T.salary_edit_title }}</h2>
+
+<form method="post">
+  <div class="mb-3">
+    <label class="form-label">{{ T.salary_employee }}</label>
+    <input class="form-control" value="{{ payment.employee }}" disabled>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">{{ T.common_amount }}</label>
+    <input type="number" step="0.01" min="0.01" name="amount" class="form-control" value="{{ payment.amount }}" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">{{ T.salary_source }}</label>
+    <input type="text" name="source" class="form-control" value="{{ payment.source }}">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">{{ T.salary_note_label }}</label>
+    <input type="text" name="note" class="form-control" value="{{ payment.note or '' }}">
+  </div>
+  <button type="submit" class="btn btn-success">{{ T.common_update }}</button>
+  <a href="{{ url_for('list_salary_payments') }}" class="btn btn-secondary">{{ T.common_cancel }}</a>
+</form>
+{% endblock %}

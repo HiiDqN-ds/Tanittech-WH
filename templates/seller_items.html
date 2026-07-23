@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}{{ T.seller_items_title }}{% endblock %}
+
+{% block content %}
+<div class="product-container">
+  <h2 style="display: flex; align-items: center;">
+    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" style="height: 32px; margin-right: 10px;">
+    {{ T.nav_products }}
+  </h2>
+
+  <input type="text" id="search" placeholder="{{ T.items_search_placeholder }}" style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px;">
+
+  <table class="data-table" style="width: 100%; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+    <thead class="table-light">
+      <tr>
+        <th style="padding: 12px; text-align: left;">{{ T.common_name }}</th>
+        <th style="padding: 12px; text-align: left;">{{ T.common_barcode }}</th>
+        <th style="padding: 12px; text-align: left;">{{ T.items_price_label }}</th>
+        <th style="padding: 12px; text-align: left;">{{ T.items_available }}</th>
+      </tr>
+    </thead>
+    <tbody id="productTable">
+      {% for item in items %}
+      <tr>
+        <td style="padding: 10px;">{{ item.name }}</td>
+        <td style="padding: 10px;">{{ item.barcode }}</td>
+        <td style="padding: 10px;">{{ item.selling_price | default(0) | round(2) }}</td>
+        <td style="padding: 10px;">{{ item.quantity }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="4" style="padding: 10px;">{{ T.items_none_found }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const input = document.getElementById("search");
+    const rows = document.querySelectorAll("#productTable tr");
+
+    input.addEventListener("input", function () {
+      const value = input.value.toLowerCase();
+
+      rows.forEach((row) => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(value) ? "" : "none";
+      });
+    });
+  });
+</script>
+{% endblock %}

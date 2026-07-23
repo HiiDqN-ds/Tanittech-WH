@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% block title %}{{ T.items_page_title }}{% endblock %}
+
+{% block content %}
+<style>
+  /* Scoped to this page's table only, so other data-tables elsewhere
+     in the app are unaffected. */
+  .items-table .dt-truncate {
+    display: inline-block;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .items-table td:nth-child(2) { /* Barcode */
+    font-family: var(--font-mono, "SFMono-Regular", Consolas, monospace);
+    font-size: 0.85em;
+    letter-spacing: 0.01em;
+  }
+  .items-table td:nth-child(2),
+  .items-table td:nth-child(3) { /* Barcode, SKU */
+    white-space: nowrap;
+  }
+</style>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>{{ T.items_page_title }}</h2>
+  <div style="
+    background-color: #198754;
+    color: white;
+    font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 0.375rem;
+    box-shadow: 0 0 8px rgba(25, 135, 84, 0.7);
+    font-size: 1.25rem;
+    min-width: 180px;
+    text-align: center;
+  ">
+    {{ T.items_total_label }} : €{{ '%.2f'|format(total_purchase_value) }}
+  </div>
+</div>
+
+<a href="{{ url_for('add_item') }}" class="btn btn-primary mb-3">
+  <i class="bi bi-plus-circle me-1"></i> {{ T.items_add_new }}
+</a>
+<!-- New tall button for increasing quantity -->
+<a href="#updateQtyForm" class="btn btn-success mb-3" id="increaseQuantityBtn">
+  <i class="bi bi-plus-circle me-1"></i> {{ T.items_increase_quantity }}
+</a>
+<!-- Hidden form to update quantity -->
+<div id="updateQtyForm" style="display:none; margin-bottom: 1rem;">
+  <form method="POST" action="{{ url_for('update_quantity') }}" aria-label="{{ T.items_increase_quantity }}">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <input type="text" name="product_identifier" placeholder="{{ T.items_product_or_barcode_placeholder }}" required />
+      <input type="number" name="add_quantity" placeholder="{{ T.items_qty_to_add_placeholder }}" min="1" required />
+      <button type="submit" class="btn btn-success">{{ T.items_update_quantity_submit }}</button>
+      <button type="button" class="btn btn-secondary" id="cancelUpdateQty">
+        {{ T.common_cancel }}
+      </button>
+    </div>
+  </form>
+</div>
+<script>
+  // The button only ever had the anchor href above — nothing actually
+  // toggled display:none, so clicking it did nothing visible at all.
+  (function () {
+    const toggleBtn = document.getElementById('increaseQuantityBtn');
+    const formWrap = document.getElementById('updateQtyForm');
+    const cancelBtn = document.getElementById('cancelUpdateQty');
+    if (!toggleBtn || !formWrap) return;
+
+    toggleBtn.addEventListener('click', function (e) {
+      e.preventDefault(); // don't let the browser also try to jump-scroll to the anchor
+      const isHidden = formWrap.style.display === 'none' || !formWrap.style.display;
+      formWrap.style.display = isHidden ? 'block' : 'none';
+      if (isHidden) {
+        formWrap.querySelector('input[name="product_identifier"]')?.focus();
+      }
+    });
+
+    cancelBtn?.addEventListener('click', function () {
+      formWrap.style.display = 'none';
+      formWrap.querySelector('form')?.reset();
+    });
+  })();
+</script>
+
+<!-- Search: filters the rows on screen instantly as you type (client-side,
+     matches name/barcode/SKU), AND doubles as barcode-scanner input — a
+     scanner "types" the code fast and sends Enter, which submits this GET
+     form to the server (search_items() in db.py: exact barcode/SKU first,
+     then name/barcode/SKU substring, case-insensitive) so a match is found
+     even beyond what happens to already be on screen. -->
+<form method="GET" action="{{ url_for('list_items') }}" class="mb-1" id="itemSearchForm">
+  <div class="input-group">
+    <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
+    <input type="text" name="q" id="searchInput" class="form-control"
+           placeholder="{{ T.items_search_placeholder }}"
+           value="{{ search_query or '' }}"
+           autofocus autocomplete="off">
+    {% if search_query %}
+    <a href="{{ url_for('list_items') }}" class="btn btn-outline-secondary" title="{{ T.common_cancel }}">
+      <i class="bi bi-x-lg"></i>
+    </a>
+    {% endif %}
+  </div>
+</form>
+<div class="form-text mb-3">{{ T.items_scan_hint }}</div>
+
+<table class="table table-bordered align-middle data-table items-table" data-sticky-actions>
+  <thead class="table-light">
+    <tr>
+      <th>{{ T.purchase_product_name }}</th>
+      <th>{{ T.common_barcode }}</th>
+      <th>{{ T.common_sku }}</th>
+      <th>{{ T.item_purchase_price }} (€)</th>
+      <th>{{ T.item_selling_price }} (€)</th>
+      <th>{{ T.item_min_selling_price }} (€)</th>
+      <th>{{ T.common_quantity }}</th>
+      <th>{{ T.items_condition_header }}</th>
+      <th>{{ T.common_description }}</th>
+      <th data-no-sort>{{ T.items_photo_header }}</th>
+      <th data-no-sort>{{ T.common_actions }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>{{ item.product_name or item.name or T.items_no_name }}</td>
+      <td>{{ item.barcode }}</td>
+      <td>{{ item.sku or '' }}</td>
+      <td>{{ "%.2f"|format(item.purchase_price) }}</td>
+      <td>{{ "%.2f"|format(item.selling_price) }}</td>
+      <td>{{ "%.2f"|format(item.min_selling_price) }}</td>
+      <td>{{ item.quantity }}</td>
+      <td>
+        {% set cond = (item.item_condition or 'neu') | lower %}
+        {% if cond == 'neu' %}
+          <span class="badge bg-success">{{ T.item_condition_neu }}</span>
+        {% elif cond == 'gebraucht' %}
+          <span class="badge bg-warning text-dark">{{ T.item_condition_gebraucht }}</span>
+        {% elif cond == 'defekt' %}
+          <span class="badge bg-danger">{{ T.item_condition_defekt }}</span>
+        {% else %}
+          <span class="badge bg-secondary">{{ cond }}</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if item.description %}
+        <span class="dt-truncate" title="{{ item.description }}">{{ item.description }}</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if item.photo_link %}
+          <img src="{{ item.photo_link }}" width="50" alt="Product photo">
+        {% else %}
+          <span class="text-muted">{{ T.sellers_no_image }}</span>
+        {% endif %}
+      </td>
+      <td class="d-flex gap-1 flex-wrap">
+
+        <!-- Edit Button -->
+        <a href="{{ url_for('edit_item', barcode_value=item.barcode) }}" class="btn btn-sm btn-warning" title="{{ T.common_edit }}">
+          <i class="bi bi-pencil-square"></i>
+        </a>
+
+        <!-- Delete Button -->
+        <form method="POST"
+              action="{{ url_for('delete_item_route', barcode_value=item.barcode) }}"
+              data-confirm="{{ T.items_confirm_delete }}"
+              onsubmit="return window.confirm(this.dataset.confirm);">
+          <button class="btn btn-sm btn-danger" title="{{ T.common_delete }}">
+            <i class="bi bi-trash"></i>
+          </button>
+        </form>
+
+        <!-- Print Barcode Button -->
+        {% if shop_features.barcode_printing %}
+        <a 
+          href="{{ url_for('barcode_label', barcode_value=item.barcode) }}"
+          target="_blank"
+          class="btn btn-outline-primary btn-sm me-1"
+          title="{{ T.items_print_barcode_title }}">
+          <i class="bi bi-upc-scan"></i>
+        </a>
+        {% endif %}
+
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="11">{{ T.items_none_found }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{# Pagination UI removed: /admin/items route doesn't provide page/total_pages variables. #}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+/**
+ * Opens a print-friendly barcode label page for the given product.
+ * Uses the server-rendered barcode_label route which auto-triggers the
+ * browser's print dialog via <a target="_blank"> (never blocked by popup
+ * blockers like window.open() is).
+ * @param {string} barcode - The barcode value to generate a label for.
+ * @param {string} productName - The product name (kept for compatibility).
+ * @param {number} quantity - Number of label copies (kept for compatibility, single copy via route).
+ */
+function printBarcode(barcode, productName, quantity) {
+  var url = location.origin + '/admin/items/barcode_label/' + encodeURIComponent(barcode);
+  window.open(url, '_blank');
+}
+</script>
+{% endblock %}

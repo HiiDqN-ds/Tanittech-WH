@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ T.sale_edit_title }}{% endblock %}
+
+{% block content %}
+<h2>{{ T.sale_edit_title }}</h2>
+
+<form method="post">
+  <div class="mb-3">
+    <label class="form-label">{{ T.common_barcode }}</label>
+    <input class="form-control" value="{{ sale.barcode }}" disabled>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">{{ T.common_quantity }}</label>
+    <input type="number" name="quantity" class="form-control" value="{{ sale.quantity }}" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">{{ T.sale_unit_price }}</label>
+    <input type="number" step="0.01" name="sale_price" class="form-control" value="{{ sale.sale_price }}" required>
+  </div>
+  <button type="submit" class="btn btn-success">{{ T.common_update }}</button>
+  <a href="{{ url_for('admin_sales') }}" class="btn btn-secondary">{{ T.common_cancel }}</a>
+</form>
+{% endblock %}

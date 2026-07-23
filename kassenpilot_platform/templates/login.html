@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width:380px; margin:60px auto;">
+  <h2 style="margin-top:0;">Log in</h2>
+  <p class="muted" style="font-size:13px; margin-top:-8px;">Superadmin: username "superadmin" + the SUPERADMIN_PASSWORD you set. Admins/sellers use the credentials they were given.</p>
+  <form method="post">
+    <label>Username</label>
+    <input name="username" autofocus required>
+    <label>Password</label>
+    <input type="password" name="password" required>
+    <button class="btn" type="submit" style="width:100%;">Log in</button>
+  </form>
+</div>
+{% endblock %}

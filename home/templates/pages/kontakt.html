@@ -1,0 +1,78 @@
+{% load static i18n %}
+<!DOCTYPE html>
+<html lang="{{ request_language }}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kontakt - Phone Repair Pro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="shortcut icon" href="{% static 'home/favicon.ico' %}" type="image/x-icon">
+</head>
+<body class="font-sans bg-gray-50">
+  <main class="min-h-screen py-12">
+    <div class="max-w-4xl mx-auto px-4">
+      <header class="text-center mb-10">
+        <h1 class="text-4xl font-bold">Kontakt</h1>
+        <p class="mt-3 text-gray-600">Phone Repair Pro | Friedrichstraße 1 | 40217 Düsseldorf</p>
+      </header>
+
+      <section class="bg-white p-8 rounded-3xl shadow-lg">
+        <div class="grid gap-8 md:grid-cols-2">
+          <div class="space-y-5">
+            <div>
+              <h2 class="text-xl font-semibold mb-2">Kontaktinformationen</h2>
+              <p class="text-gray-700">Friedrichstraße 1</p>
+              <p class="text-gray-700">40217 Düsseldorf</p>
+              <p class="text-gray-700">Deutschland</p>
+            </div>
+            <div>
+              <p class="text-gray-700"><span class="font-semibold">Telefon:</span> <a href="tel:+4915904000040" class="text-blue-600 hover:text-blue-800">+49(0)15904000040</a></p>
+              <p class="text-gray-700"><span class="font-semibold">E-Mail:</span> <a href="mailto:info@tanitech.de" class="text-blue-600 hover:text-blue-800">info@tanitech.de</a></p>
+            </div>
+          </div>
+
+          <div class="rounded-3xl overflow-hidden border border-gray-200">
+            <iframe
+              class="w-full h-full min-h-[280px]"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d4998.064672361595!2d6.77416171165504!3d51.21847997163125!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47b8cb00589fda85%3A0x621f4d007f0419c9!2sFriedrichstra%C3%9Fe%201%2C%2040217%20D%C3%BCsseldorf!5e0!3m2!1sfr!2sde!4v1768835626024!5m2!1sfr!2sde"
+              style="border:0;"
+              allowfullscreen=""
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade">
+            </iframe>
+          </div>
+        </div>
+
+        <div class="mt-10 grid md:grid-cols-2 gap-8">
+          <div>
+            <h2 class="text-xl font-bold mb-4">Wichtige Links</h2>
+            <ul class="space-y-2 text-gray-600">
+              <li><a href="/pages/datenschutz/" class="hover:text-blue-700">Datenschutz</a></li>
+              <li><a href="/pages/agb/" class="hover:text-blue-700">AGB</a></li>
+              <li><a href="/pages/lieferung/" class="hover:text-blue-700">Lieferung und Versand</a></li>
+              <li><a href="/pages/widerruf/" class="hover:text-blue-700">Widerruf</a></li>
+              <li><a href="/pages/bestellung/" class="hover:text-blue-700">Bestellprozess</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h2 class="text-xl font-bold mb-4">Newsletter abonnieren</h2>
+            <form action="/newsletter/" method="post" class="space-y-4">
+              {% csrf_token %}
+              <input type="email" name="email" placeholder="Ihre E-Mail-Adresse" required class="w-full p-4 border border-gray-300 rounded-3xl focus:ring-2 focus:ring-blue-500" />
+              <button type="submit" class="w-full bg-blue-600 text-white p-4 rounded-3xl hover:bg-blue-700 font-semibold">Jetzt anmelden</button>
+            </form>
+            <p class="text-sm text-gray-500">Erhalten Sie Reparaturtipps und Angebote direkt per E-Mail.</p>
+          </div>
+        </div>
+
+        <div class="mt-10 text-center">
+          <a href="/" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700">Zurück zur Startseite</a>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
+
+

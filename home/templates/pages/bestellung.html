@@ -1,0 +1,79 @@
+{% load static i18n %}
+<!DOCTYPE html>
+<html lang="{{ request_language|default:'de' }}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bestellprozess - Phone Repair Pro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="font-sans text-gray-700 bg-gray-50">
+
+  <main class="max-w-4xl mx-auto px-4 py-12">
+    <header class="text-center mb-10">
+      <h1 class="text-4xl font-bold">Bestellprozess</h1>
+      <p class="mt-3 text-gray-600">So einfach bestellen Sie Ihre Reparatur bei Phone Repair Pro.</p>
+    </header>
+
+    <section class="bg-white rounded-3xl shadow-lg p-8 sm:p-10">
+      <div class="space-y-6">
+        <p class="text-gray-700 leading-8">Folgen Sie diesen Schritten, um Ihre Reparatur unkompliziert zu beauftragen. Wir begleiten Sie durch den gesamten Ablauf.</p>
+
+        <ol class="space-y-5 text-gray-700">
+          <li class="flex gap-4">
+            <span class="flex-none w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">1</span>
+            <div>
+              <p class="font-semibold">Gerät und Service wählen</p>
+              <p class="text-gray-600">Wählen Sie Ihr Gerät und den gewünschten Reparaturservice aus.</p>
+            </div>
+          </li>
+
+          <li class="flex gap-4">
+            <span class="flex-none w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">2</span>
+            <div>
+              <p class="font-semibold">Daten eingeben</p>
+              <p class="text-gray-600">Geben Sie Ihre Kontaktdaten und Lieferadresse ein.</p>
+            </div>
+          </li>
+
+          <li class="flex gap-4">
+            <span class="flex-none w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">3</span>
+            <div>
+              <p class="font-semibold">Versand und Zahlung</p>
+              <p class="text-gray-600">Wählen Sie die Versandoption und die passende Zahlungsmethode.</p>
+            </div>
+          </li>
+
+          <li class="flex gap-4">
+            <span class="flex-none w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">4</span>
+            <div>
+              <p class="font-semibold">Bestellung abschließen</p>
+              <p class="text-gray-600">Prüfen Sie Ihre Angaben und bestätigen Sie die Bestellung.</p>
+            </div>
+          </li>
+
+          <li class="flex gap-4">
+            <span class="flex-none w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">5</span>
+            <div>
+              <p class="font-semibold">Bestätigung erhalten</p>
+              <p class="text-gray-600">Sie erhalten eine E-Mail mit allen Details und der Reparaturnummer.</p>
+            </div>
+          </li>
+        </ol>
+
+        <div class="rounded-2xl bg-blue-50 border border-blue-100 p-6">
+          <h2 class="text-xl font-semibold text-blue-900">Brauchen Sie Unterstützung?</h2>
+          <p class="text-gray-700 leading-7">Unser Team hilft Ihnen gerne bei Fragen zu Ihrer Bestellung oder dem Reparaturstatus.</p>
+          <a href="/kontakt" class="inline-block mt-4 text-blue-700 hover:text-blue-900 font-semibold">Kontakt aufnehmen →</a>
+        </div>
+
+        <div class="text-center">
+          <a href="/" class="inline-block bg-blue-600 text-white px-7 py-3 rounded-full hover:bg-blue-700">Zur Startseite</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+</body>
+</html>
+

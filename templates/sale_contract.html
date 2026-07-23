@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}{{ T.contract_title if T.contract_title else 'Sale contract' }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 900px;">
+  <h2 class="mb-3">{{ T.contract_title if T.contract_title else 'Sale contract' }}</h2>
+  <p class="text-muted">{{ T.contract_sale_id_label if T.contract_sale_id_label else 'Sale ID' }}: <strong>{{ sale_id }}</strong></p>
+
+  <div class="card p-3">
+    <p><strong>{{ T.contract_note_title if T.contract_note_title else 'Note' }}</strong></p>
+    <p>{{ T.contract_note if T.contract_note else 'Contract generation is not implemented yet for this project version. This page exists to prevent routing errors.' }}</p>
+  </div>
+
+  <div class="mt-4">
+    <a href="{{ url_for('admin_sales') }}" class="btn btn-secondary">{{ T.common_back if T.common_back else 'Back' }}</a>
+  </div>
+</div>
+{% endblock %}
+
