@@ -1655,34 +1655,36 @@ def barcode_label(barcode_value):
     min-height: 100vh;
     font-family: Arial, sans-serif;
   }}
-  .label {{
-    width: 60mm;
-    padding: 5mm;
+.label {{
+    width: 38mm;
+    height: 28mm;
+    padding: 1.5mm;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
   }}
   .label img {{
-    width: 50mm;
+    width: 34mm;
     height: auto;
     display: block;
-    margin: 0 auto 3mm;
+    margin: 0 auto 1mm;
   }}
-  .label .product-name {{
-    font-size: 10pt;
+.label .product-name {{
+    font-size: 6.5pt;
     font-weight: bold;
     text-align: center;
     word-wrap: break-word;
-  }}
-  .label .barcode-text {{
-    font-size: 7pt;
-    color: #555;
-    text-align: center;
-    margin-top: 1mm;
-    font-family: monospace;
+    line-height: 1.15;
+    max-height: 8mm;
+    overflow: hidden;
   }}
   @media print {{
     body {{ margin: 0; padding: 0; }}
-    .label {{ width: 60mm; padding: 5mm; }}
-    .label img {{ width: 50mm; }}
+    .label {{ width: 38mm; height: 28mm; padding: 1.5mm; }}
+    .label img {{ width: 34mm; }}
   }}
 </style>
 </head>
@@ -1690,8 +1692,7 @@ def barcode_label(barcode_value):
 <div class="label">
   <img src="{html.escape(barcode_url)}" alt="Barcode {html.escape(barcode_value)}"
        onerror="this.outerHTML='<div style=\\'color:red;padding:10px;\\'>Barcode: {html.escape(barcode_value)}</div>'">
-  <div class="product-name">{html.escape(product_name)}</div>
-  <div class="barcode-text">{html.escape(barcode_value)}</div>
+<div class="product-name">{html.escape(product_name)}</div>
 </div>
 </body>
 </html>'''
