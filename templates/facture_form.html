@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}{{ T.facture_edit_title if facture else T.facture_new_title }} - {{ T.platform_name }}{% endblock %}
+{% block page_title %}{{ T.facture_edit_title if facture else T.facture_new_title }}{% endblock %}
+
+{% block content %}
+
+<div class="hero-banner">
+  <div class="hero-banner-decor"></div>
+  <div class="hero-content">
+    <div>
+      <div class="hero-eyebrow">{{ T.facture_management_area }}</div>
+      <h1>{{ T.facture_edit_title if facture else T.facture_new_heading }}</h1>
+      <p>{{ T.facture_subtitle }}</p>
+    </div>
+    <a href="{{ url_for('list_factures') }}" class="btn btn-light fw-semibold">
+      <i class="bi bi-arrow-left me-1"></i> {{ T.common_back }}
+    </a>
+  </div>
+</div>
+
+<div class="card p-4" style="max-width: 760px;">
+  {% if not facture %}
+  <div class="mb-3 d-flex align-items-center gap-2">
+    <button type="button" id="scanInvoiceBtn" class="btn btn-outline-primary">
+      <i class="bi bi-camera-fill me-1"></i> {{ T.facture_scan_btn }}
+    </button>
+    <input type="file" id="scanInvoiceInput" accept="image/*" capture="environment" style="display:none;">
+    <span id="scanInvoiceStatus" class="text-muted small"></span>
+  </div>
+  {% endif %}
+  <form method="POST">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">{{ T.facture_type_label }}</label>
+        <select name="facture_type" class="form-select" required>
+          {% for key, label in facture_types.items() %}
+            <option value="{{ key }}" {{ 'selected' if facture and facture.facture_type == key }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">{{ T.common_status }}</label>
+        <select name="status" class="form-select" required>
+          <option value="unpaid" {{ 'selected' if not facture or facture.status == 'unpaid' }}>{{ T.dash_open_label }}</option>
+          <option value="paid" {{ 'selected' if facture and facture.status == 'paid' }}>{{ T.clients_status_paid }}</option>
+        </select>
+      </div>
+
+      <div class="col-md-8">
+        <label class="form-label">{{ T.facture_issuer_label }}</label>
+        <input type="text" name="issuer" class="form-control" placeholder="{{ T.facture_issuer_placeholder }}"
+               value="{{ facture.issuer if facture else '' }}" required>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">{{ T.facture_reference_label }}</label>
+        <input type="text" name="reference" class="form-control" placeholder="{{ T.facture_reference_placeholder }}"
+               value="{{ facture.reference if facture else '' }}">
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">{{ T.common_amount }}</label>
+        <div class="input-group">
+          <input type="number" step="0.01" min="0" name="amount" class="form-control"
+                 value="{{ facture.amount if facture else '' }}" required>
+          <select name="currency" class="form-select" style="max-width: 100px;">
+            {% set cur = facture.currency if facture else 'EUR' %}
+            <option value="EUR" {{ 'selected' if cur == 'EUR' }}>EUR</option>
+            <option value="USD" {{ 'selected' if cur == 'USD' }}>USD</option>
+            <option value="GBP" {{ 'selected' if cur == 'GBP' }}>GBP</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">{{ T.facture_issue_date_label }}</label>
+        <input type="date" name="issue_date" class="form-control"
+               value="{{ (facture.issue_date if facture else today).strftime('%Y-%m-%d') }}" required>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">{{ T.facture_due_date_label }}</label>
+        <input type="date" name="due_date" class="form-control"
+               value="{{ facture.due_date.strftime('%Y-%m-%d') if facture and facture.due_date else '' }}">
+      </div>
+
+      <div class="col-12">
+        <label class="form-label">{{ T.facture_notes_label }}</label>
+        <textarea name="notes" class="form-control" rows="3" placeholder="{{ T.facture_notes_placeholder }}">{{ facture.notes if facture else '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-circle me-1"></i> {{ T.facture_save_changes if facture else T.facture_save_new }}
+      </button>
+      <a href="{{ url_for('list_factures') }}" class="btn btn-outline-secondary">{{ T.common_cancel }}</a>
+    </div>
+  </form>
+</div>
+
+{% if not facture %}
+<script>
+(function () {
+  const btn = document.getElementById('scanInvoiceBtn');
+  const input = document.getElementById('scanInvoiceInput');
+  const status = document.getElementById('scanInvoiceStatus');
+  if (!btn || !input) return;
+
+  const i18n = {
+    reading: {{ T.facture_ocr_reading | tojson }},
+    failGeneric: {{ T.facture_ocr_fail_generic | tojson }},
+    success: {{ T.facture_ocr_success | tojson }},
+    connFail: {{ T.facture_ocr_conn_fail | tojson }}
+  };
+
+  btn.addEventListener('click', () => input.click());
+
+  input.addEventListener('change', async () => {
+    const file = input.files[0];
+    if (!file) return;
+    status.textContent = i18n.reading;
+    const formData = new FormData();
+    formData.append('image', file);
+    try {
+      const res = await fetch('/factures/ocr', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        status.textContent = data.message || i18n.failGeneric;
+        return;
+      }
+      const form = document.querySelector('form[method="POST"]');
+      if (data.issuer) form.querySelector('[name="issuer"]').value = data.issuer;
+      if (data.amount != null) form.querySelector('[name="amount"]').value = data.amount;
+      if (data.issue_date) form.querySelector('[name="issue_date"]').value = data.issue_date;
+      if (data.due_date) form.querySelector('[name="due_date"]').value = data.due_date;
+      if (data.facture_type) {
+        const typeSelect = form.querySelector('[name="facture_type"]');
+        if (typeSelect) typeSelect.value = data.facture_type;
+      }
+      status.textContent = i18n.success;
+    } catch (e) {
+      status.textContent = i18n.connFail;
+    }
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,487 @@
+{% extends "base.html" %}
+
+{% block title %}{{ T.nav_dashboard }} - {{ T.platform_name }}{% endblock %}
+{% block page_title %}{{ T.nav_dashboard }}{% endblock %}
+
+{% block content %}
+
+<div class="hero-banner">
+  <div class="hero-banner-decor"></div>
+  <div class="hero-content">
+    <div>
+      <div class="hero-eyebrow">{{ T.dash_admin_area }}</div>
+      <h1>{{ T.dash_greeting }}, {{ session['username'] }} 👋</h1>
+      <p>{{ T.dash_subtitle }}</p>
+    </div>
+
+    <!-- Mailbox Toggle and Panel -->
+    <div class="mailbox">
+      <button id="mailbox-toggle-btn" class="mailbox-toggle-btn" type="button"
+        onclick="toggleMailbox()"
+        title="{% if mailbox_notifications and mailbox_notifications|length > 0 %}{{ T.dash_mailbox_new_count.replace('{count}', mailbox_notifications|length|string) }}{% else %}{{ T.dash_mailbox_none }}{% endif %}">
+
+        <i class="bi bi-envelope"></i>
+        {% if mailbox_notifications and mailbox_notifications|length > 0 %}
+          <span class="mailbox-badge">{{ mailbox_notifications|length }}</span>
+        {% endif %}
+      </button>
+
+      <div id="mailbox-panel" class="mailbox-panel" aria-hidden="true">
+
+        <h3 class="mailbox-panel-title">
+          <i class="fa-solid fa-envelope-open-text"></i>
+          {{ T.dash_mailbox_title }}
+        </h3>
+
+        {% if mailbox_notifications %}
+          <ul class="mailbox-list">
+            {% for note in mailbox_notifications %}
+              <li class="mailbox-item">
+                <div class="mailbox-item-date">{{ note.date | datetimeformat('%d.%m.%Y') }}</div>
+                <div class="mailbox-item-message">{{ note.message }}</div>
+                <button title="{{ T.dash_mailbox_dismiss }}" onclick="dismissNotification('{{ note.barcode }}', this)" class="dismiss-btn">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="mailbox-empty">{{ T.dash_mailbox_empty }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat-box">
+    <h2><i class="bi bi-sun"></i> {{ T.dash_daily_revenue }}</h2>
+    <p>€{{ "{:,.2f}".format(taegliche_einnahmen|default(0)) }}</p>
+  </div>
+
+  <div class="stat-box">
+    <h2><i class="bi bi-calendar3"></i> {{ T.dash_monthly_revenue }}</h2>
+    <p>€{{ "{:,.2f}".format(monatliche_einnahmen |default(0)) }}</p>
+  </div>
+
+  <div class="stat-box">
+    <h2><i class="bi bi-graph-up-arrow"></i> {{ T.dash_today_profit }}</h2>
+    <p>€{{ "{:,.2f}".format(heutiger_gewinn |default(0)) }}</p>
+  </div>
+
+{% set kasse_value = wallet_balance|float %}
+  <div class="stat-box {{ 'stat-box-danger' if kasse_value < 0 else '' }}">
+    <h2>
+      <i class="bi {{ 'bi-exclamation-triangle-fill' if kasse_value < 0 else 'bi-cash-coin' }}"></i>
+      {{ T.dash_kasse }}
+      {% if kasse_value < 0 %}<span class="stat-box-danger-badge">{{ T.dash_kasse_negative_badge|default('Negative') }}</span>{% endif %}
+    </h2>
+    <p class="{{ 'text-loss' if kasse_value < 0 else 'text-profit' }}">
+      €{{ "{:,.2f}".format(kasse_value | default(0)) }}
+    </p>
+    <small class="{{ 'text-loss' if unpaid_sum > 0 else '' }}">
+      {{ T.dash_open_label }}: €{{ "{:,.2f}".format(unpaid_sum) }}
+    </small>
+  </div>
+
+  <div class="stat-box">
+    <h2><i class="bi bi-arrow-down-circle"></i> {{ T.dash_monthly_expenses }}</h2>
+    <p class="text-loss">€{{ "{:,.2f}".format(monatliche_auszahlungen_kasse | default(0)) }}</p>
+  </div>
+
+  <div class="stat-box">
+    <h2><i class="bi bi-arrow-up-circle"></i> {{ T.dash_monthly_deposits }}</h2>
+    <p class="text-profit">€{{ "{:,.2f}".format(monatliche_einzahlungen_kasse | default(0)) }}</p>
+  </div>
+</div>
+
+<!-- Live dashboard cards: recomputed fresh on every page load, and
+     re-polled every 20s via JS (see script below) so they stay current
+     after any create/update/delete anywhere in the app — including
+     changes made through the chat assistant — without needing a reload. -->
+<div class="d-flex justify-content-between align-items-center mt-4 mb-2">
+  <h2 class="mb-0"><i class="bi bi-broadcast text-brand"></i> {{ T.dash_live_section_title }}</h2>
+  <small class="text-muted" id="liveStatsUpdatedAt">{{ T.dash_live_auto_refresh }}</small>
+</div>
+<div class="stats" id="liveStatsGrid">
+  <div class="stat-box">
+    <h2><i class="bi bi-sun"></i> {{ T.dash_card_today_sales }}</h2>
+    <p id="stat-today_sales">€{{ "{:,.2f}".format(live_stats.today_sales) }}</p>
+  </div>
+  <div class="stat-box">
+    <h2><i class="bi bi-box-seam"></i> {{ T.dash_card_today_purchases }}</h2>
+    <p id="stat-today_purchases">€{{ "{:,.2f}".format(live_stats.today_purchases) }}</p>
+  </div>
+  <div class="stat-box">
+    <h2><i class="bi bi-graph-up-arrow"></i> {{ T.dash_card_today_profit }}</h2>
+    <p class="{{ 'text-loss' if live_stats.today_profit < 0 else 'text-profit' }}" id="stat-today_profit">€{{ "{:,.2f}".format(live_stats.today_profit) }}</p>
+  </div>
+  <div class="stat-box">
+    <h2><i class="bi bi-boxes"></i> {{ T.dash_card_inventory_value }}</h2>
+    <p id="stat-inventory_value">€{{ "{:,.2f}".format(live_stats.inventory_value) }}</p>
+  </div>
+  <div class="stat-box">
+    <h2><i class="bi bi-exclamation-circle"></i> {{ T.dash_card_outstanding_debt }}</h2>
+    <p class="{{ 'text-loss' if live_stats.outstanding_debt > 0 else '' }}" id="stat-outstanding_debt">€{{ "{:,.2f}".format(live_stats.outstanding_debt) }}</p>
+  </div>
+  <div class="stat-box">
+    <h2><i class="bi bi-check-circle"></i> {{ T.dash_card_paid_debt }}</h2>
+    <p class="text-profit" id="stat-paid_debt">€{{ "{:,.2f}".format(live_stats.paid_debt) }}</p>
+  </div>
+  <div class="stat-box">
+    <h2><i class="bi bi-cash-coin"></i> {{ T.dash_card_cash_debt_payments }}</h2>
+    <p id="stat-cash_debt_payments_today">€{{ "{:,.2f}".format(live_stats.cash_debt_payments_today) }}</p>
+  </div>
+  <div class="stat-box">
+    <h2><i class="bi bi-credit-card"></i> {{ T.dash_card_card_debt_payments }}</h2>
+    <p id="stat-card_debt_payments_today">€{{ "{:,.2f}".format(live_stats.card_debt_payments_today) }}</p>
+  </div>
+  <div class="stat-box">
+    <h2><i class="bi bi-cash-stack"></i> {{ T.dash_card_cash_withdrawals }}</h2>
+    <p class="text-loss" id="stat-cash_withdrawals_today">€{{ "{:,.2f}".format(live_stats.cash_withdrawals_today) }}</p>
+  </div>
+  <div class="stat-box">
+    <h2><i class="bi bi-credit-card-2-front"></i> {{ T.dash_card_card_withdrawals }}</h2>
+    <p class="text-loss" id="stat-card_withdrawals_today">€{{ "{:,.2f}".format(live_stats.card_withdrawals_today) }}</p>
+  </div>
+  <div class="stat-box">
+    <h2><i class="bi bi-box2-heart"></i> {{ T.dash_card_low_stock }}</h2>
+    <p class="{{ 'text-loss' if live_stats.low_stock_count > 0 else '' }}" id="stat-low_stock_count">{{ live_stats.low_stock_count }}</p>
+  </div>
+</div>
+
+<script>
+(function() {
+  const moneyKeys = new Set([
+    'today_sales', 'today_purchases', 'today_profit', 'inventory_value',
+    'outstanding_debt', 'paid_debt', 'cash_debt_payments_today',
+    'card_debt_payments_today', 'cash_withdrawals_today', 'card_withdrawals_today',
+  ]);
+  const updatedLabel = {{ T.dash_live_last_updated | tojson }};
+
+  function formatMoney(n) {
+    return '€' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function applyStats(stats) {
+    Object.keys(stats).forEach(key => {
+      const el = document.getElementById('stat-' + key);
+      if (!el) return;
+      el.textContent = moneyKeys.has(key) ? formatMoney(stats[key]) : stats[key];
+    });
+    const stamp = document.getElementById('liveStatsUpdatedAt');
+    if (stamp) {
+      const now = new Date();
+      stamp.textContent = `${updatedLabel}: ${now.toLocaleTimeString()}`;
+    }
+  }
+
+  function refreshLiveStats() {
+    fetch('{{ url_for("admin_dashboard_stats") }}')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(applyStats)
+      .catch(() => { /* silent — keep showing the last known-good values */ });
+  }
+
+  // Poll every 20s so the cards stay current after any create/update/
+  // delete elsewhere in the app (web UI or chat assistant) without the
+  // user needing to reload this page.
+  setInterval(refreshLiveStats, 20000);
+  // Also refresh once immediately, and whenever the tab regains focus
+  // (covers the common case of switching back after making a change).
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refreshLiveStats();
+  });
+})();
+</script>
+
+<!-- Charts -->
+<div class="chart-grid">
+
+  <div class="chart-card">
+    <h2><i class="bi bi-bar-chart-line text-brand"></i> {{ T.dash_chart_revenue_overview }}</h2>
+    <canvas id="revenueChart" height="110"></canvas>
+  </div>
+  <div class="chart-card">
+    <h2><i class="bi bi-pie-chart text-brand"></i> {{ T.dash_chart_kasse_month }}</h2>
+    <canvas id="cashChart" height="180"></canvas>
+  </div>
+</div>
+
+<!-- Sales and Purchases side by side -->
+<div class="dashboard-panels">
+
+  <!-- Sales section -->
+  <section class="section-panel sales">
+    <h2><i class="bi bi-graph-up-arrow text-success"></i> {{ T.dash_sales_section }}</h2>
+
+    <div class="section-actions">
+      <a href="{{ url_for('download_sales_csv') }}" title="{{ T.dash_download_csv }}">
+        <i class="fa-solid fa-download"></i>
+      </a>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>{{ T.common_date }}</th>
+            <th>{{ T.dash_item }}</th>
+            <th class="text-center">{{ T.common_quantity }}</th>
+            <th class="text-end">{{ T.dash_price_per_unit }}</th>
+            <th class="text-end">{{ T.dash_total_price }}</th>
+            <th class="text-end">{{ T.dash_profit }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sale in sales %}
+            {% for item in sale.get('items', []) %}
+              <tr>
+                <td>{{ sale.date | datetimeformat }}</td>
+                <td>{{ item.product_name or T.dash_unknown }}</td>
+                <td class="text-center">{{ item.quantity or 0 }}</td>
+                <td class="text-end">€{{ "{:,.2f}".format(item.sale_price or 0) }}</td>
+                <td class="text-end">€{{ "{:,.2f}".format(item.total_price or 0) }}</td>
+                <td class="text-end text-profit">€{{ "{:,.2f}".format(item.profit or 0) }}</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="6" class="text-center py-5">
+                <div class="empty-state">
+                  <i class="bi bi-receipt"></i>
+                  <p class="mb-0">{{ T.dash_no_sales_data }}</p>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Purchases section -->
+  <section class="section-panel purchases">
+    <h2><i class="bi bi-bag text-warning"></i> {{ T.dash_purchases_section }}</h2>
+
+    <div class="section-actions">
+      <a href="{{ url_for('download_purchases_csv') }}" title="{{ T.dash_download_csv }}">
+        <i class="fa-solid fa-download"></i>
+      </a>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>{{ T.common_date }}</th>
+            <th>{{ T.dash_item }}</th>
+            <th class="text-center">{{ T.common_quantity }}</th>
+            <th class="text-end">{{ T.dash_price_per_unit }}</th>
+            <th class="text-end">{{ T.dash_total_price }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for purchase in purchases %}
+            <tr>
+              <td>{{ purchase.date | datetimeformat('%d.%m.%Y %H:%M') }}</td>
+              <td>{{ purchase.product_name or T.dash_unknown }}</td>
+              <td class="text-center">{{ purchase.quantity or 0 }}</td>
+              <td class="text-end">€{{ "{:,.2f}".format(purchase.price or 0) }}</td>
+              <td class="text-end">€{{ "{:,.2f}".format(purchase.total_price or 0) }}</td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="5" class="text-center py-5">
+                <div class="empty-state">
+                  <i class="bi bi-bag"></i>
+                  <p class="mb-0">{{ T.dash_no_purchase_data }}</p>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<style>
+.dashboard-panels { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.dashboard-panels .section-panel { flex: 1; min-width: 320px; }
+.text-brand { color: var(--brand); }
+
+.mailbox { position: relative; }
+.mailbox-toggle-btn {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 1.1em;
+  position: relative;
+}
+.mailbox-toggle-btn:hover { background: rgba(255,255,255,0.25); }
+.mailbox-badge {
+  position: absolute;
+  top: -4px;
+  inset-inline-end: -4px;
+  background: var(--gold);
+  color: #10181A;
+  font-size: 0.7em;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 12px;
+}
+.mailbox-panel {
+  display: none;
+  position: absolute;
+  top: 48px;
+  inset-inline-end: 0;
+  width: 320px;
+  max-width: calc(100vw - 2.4rem);
+  max-height: 400px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem;
+  z-index: 999;
+  box-shadow: var(--shadow-md);
+  overflow-y: auto;
+  color: var(--ink);
+}
+.mailbox-panel-title { margin-bottom: 0.75rem; font-size: 1rem; font-weight: 600; color: var(--brand-dark); }
+.mailbox-panel-title i { margin-right: 6px; }
+.mailbox-list { list-style: none; padding-left: 0; margin: 0; }
+.mailbox-item { position: relative; padding-inline-end: 30px; margin-bottom: 12px; }
+.mailbox-item-date { font-size: 0.8em; color: var(--ink-soft); font-style: italic; }
+.mailbox-item-message { margin-top: 4px; line-height: 1.35; }
+.mailbox-empty { font-style: italic; color: var(--ink-soft); }
+
+@media (max-width: 560px) {
+  /* On narrow screens .hero-content wraps and .mailbox no longer sits
+     where the panel's `inset-inline-end: 0` anchor assumes it does, which
+     could push the 320px panel partly off-screen or under the wrapped
+     text. Pin it to the viewport instead of the button on small screens
+     so it always renders fully visible. */
+  .mailbox-panel {
+    position: fixed;
+    top: auto;
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+    width: auto;
+    max-width: none;
+    max-height: 70vh;
+  }
+}
+</style>
+
+<script>
+function toggleMailbox() {
+  const panel = document.getElementById('mailbox-panel');
+  if (!panel) return;
+  const isOpen = panel.getAttribute('data-open') === 'true';
+  panel.setAttribute('data-open', String(!isOpen));
+  panel.setAttribute('aria-hidden', String(isOpen));
+  panel.style.display = !isOpen ? 'block' : 'none';
+}
+
+document.addEventListener('click', function (event) {
+  const panel = document.getElementById('mailbox-panel');
+  const button = document.getElementById('mailbox-toggle-btn');
+  if (!panel || !button) return;
+  if (!panel.contains(event.target) && !button.contains(event.target)) {
+    panel.style.display = 'none';
+    panel.setAttribute('data-open', 'false');
+    panel.setAttribute('aria-hidden', 'true');
+  }
+});
+
+document.addEventListener('keydown', function (event) {
+  if (event.key === 'Escape') {
+    const panel = document.getElementById('mailbox-panel');
+    if (!panel) return;
+    panel.style.display = 'none';
+    panel.setAttribute('data-open', 'false');
+    panel.setAttribute('aria-hidden', 'true');
+  }
+});
+
+function dismissNotification(barcode, btnElement) {
+  fetch('/dismiss_alert', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'barcode=' + encodeURIComponent(barcode),
+  }).then((response) => {
+    if (!response.ok) return;
+    const noteItem = btnElement && btnElement.closest ? btnElement.closest('li') : null;
+    if (noteItem) noteItem.remove();
+
+    const badge = document.querySelector('#mailbox-toggle-btn .mailbox-badge');
+    const panel = document.getElementById('mailbox-panel');
+    if (badge) {
+      const next = (parseInt(badge.textContent, 10) || 0) - 1;
+      if (next > 0) {
+        badge.textContent = String(next);
+      } else {
+        badge.remove();
+        if (panel) panel.style.display = 'none';
+        if (panel) panel.setAttribute('data-open', 'false');
+      }
+    }
+  });
+}
+
+// ---- Charts ----
+const revenueCtx = document.getElementById('revenueChart');
+
+new Chart(revenueCtx, {
+  type: 'bar',
+  data: {
+    labels: [{{ T.dash_chart_today | tojson }}, {{ T.dash_chart_month | tojson }}, {{ T.dash_chart_profit_today | tojson }}],
+    datasets: [{
+      label: 'EUR',
+      data: [
+        {{ taegliche_einnahmen|default(0) }},
+        {{ monatliche_einnahmen|default(0) }},
+        {{ heutiger_gewinn|default(0) }}
+      ],
+      backgroundColor: ['#12A594', '#0B6FA8', '#E8A33D'],
+      borderRadius: 8,
+      maxBarThickness: 60
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: '#EEF1F0' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+const cashCtx = document.getElementById('cashChart');
+new Chart(cashCtx, {
+  type: 'doughnut',
+  data: {
+    labels: [{{ T.dash_chart_deposits | tojson }}, {{ T.dash_chart_expenses | tojson }}],
+    datasets: [{
+      data: [
+        {{ monatliche_einzahlungen_kasse|default(0) }},
+        {{ monatliche_auszahlungen_kasse|default(0) }}
+      ],
+      backgroundColor: ['#1F9D6E', '#E5484D'],
+      borderWidth: 0
+    }]
+  },
+  options: {
+    responsive: true,
+    cutout: '70%',
+    plugins: { legend: { position: 'bottom' } }
+  }
+});
+</script>
+{% endblock %}

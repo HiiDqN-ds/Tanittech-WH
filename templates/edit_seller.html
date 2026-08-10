@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ T.seller_edit_title }}{% endblock %}
+{% block content %}
+<h2>{{ T.seller_edit_heading }}: {{ seller.username }}</h2>
+
+<form method="POST">
+  <div class="mb-3">
+    <label>{{ T.seller_username }}</label>
+    <input type="text" class="form-control" value="{{ seller.username }}" disabled>
+  </div>
+
+  <div class="mb-3">
+    <label>{{ T.seller_profile_img }}</label>
+    <input name="profile_img" class="form-control" value="{{ seller.profile_img }}">
+  </div>
+
+  <div class="mb-3">
+    <label>{{ T.seller_salary }}</label>
+    {% if is_self %}
+      <input type="text" class="form-control" value="🔒 ausgeblendet" disabled>
+      <div class="form-text">Sie können Ihr eigenes Gehalt hier nicht einsehen oder ändern.</div>
+    {% else %}
+      <input name="salary" type="number" step="0.01" class="form-control" value="{{ seller.salary }}">
+    {% endif %}
+  </div>
+
+  <div class="mb-3">
+    <label>{{ T.seller_password }}</label>
+    <input name="password" type="password" class="form-control" placeholder="{{ T.seller_new_password_placeholder }}">
+  </div>
+
+  <div class="form-check mb-3">
+    <input name="activated" class="form-check-input" type="checkbox" id="activated" {% if seller.activated %}checked{% endif %}>
+    <label class="form-check-label" for="activated">{{ T.seller_activated }}</label>
+  </div>
+
+  <h5 class="mt-4">{{ T.seller_ai_permissions_heading }}</h5>
+  <p class="text-muted">{{ T.seller_ai_permissions_desc }}</p>
+
+  {% for cat in ['debts', 'factures', 'kasse', 'items', 'orders', 'sales', 'clients'] %}
+  <div class="form-check mb-2">
+    <input name="perm_{{ cat }}" class="form-check-input" type="checkbox" id="perm_{{ cat }}"
+           {% if cat in granted_categories %}checked{% endif %}>
+    <label class="form-check-label" for="perm_{{ cat }}">{{ T['perm_' + cat] }}</label>
+  </div>
+  {% endfor %}
+
+  <button type="submit" class="btn btn-success mt-2">{{ T.common_save }}</button>
+  <a href="{{ url_for('list_sellers') }}" class="btn btn-secondary">{{ T.common_cancel }}</a>
+</form>
+{% endblock %}

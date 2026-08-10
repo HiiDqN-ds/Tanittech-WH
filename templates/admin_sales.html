@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block title %}{{ T.sales_history_title }}{% endblock %}
+
+{% block content %}
+{% if request.args.get('date') %}
+  <p class="text-muted">{{ T.admin_sales_filtered_by }} <strong>{{ request.args.get('date') }}</strong></p>
+{% endif %}
+<h2>{{ T.sales_history_heading }}</h2>
+<!-- Search: submits to the server (search_sales() in db.py — order id,
+     seller, customer, payment method, or any line item's product
+     name/barcode) so results aren't limited to whatever sales already
+     happen to be loaded on screen. The onkeyup handler below also keeps
+     instantly hiding/showing already-loaded cards as you type, same as
+     before. -->
+<form method="get" class="mb-4 d-flex gap-2 align-items-end">
+  <div>
+    <label for="date">{{ T.orders_date_label }}</label>
+    <input type="date" name="date" id="date" value="{{ request.args.get('date', '') }}" class="form-control">
+  </div>
+  <div class="flex-grow-1">
+    <label for="searchInput">{{ T.sales_search_placeholder }}</label>
+    <input type="text" name="q" id="searchInput" class="form-control" placeholder="{{ T.sales_search_placeholder }}"
+           value="{{ search_query or '' }}" onkeyup="filterOrders()" autocomplete="off">
+  </div>
+  <button type="submit" class="btn btn-primary">{{ T.orders_filter_btn }}</button>
+  <a href="{{ url_for('admin_sales') }}" class="btn btn-secondary">{{ T.orders_reset_btn }}</a>
+</form>
+
+<div id="sales-container">
+  {% for order in sales %}
+    <div class="card mb-4 p-3 shadow-sm">
+      <h5><strong>{{ T.sales_seller_label }}</strong> {{ order.user }}</h5>
+
+      {% if order.date %}
+        {% set fixed_date = (order.date|string).replace("T", " ") %}
+        <p><strong>{{ T.common_date }}:</strong> {{ fixed_date[:19] }}</p>
+      {% else %}
+        <p><strong>{{ T.common_date }}:</strong> {{ T.admin_sales_no_date }}</p>
+      {% endif %}
+
+      <div class="table-responsive">
+        <table class="table table-bordered align-middle data-table">
+          <thead class="table-light">
+            <tr>
+              <th>{{ T.sales_product_header }}</th>
+              <th>{{ T.common_barcode }}</th>
+              <th>{{ T.common_quantity }}</th>
+              <th>{{ T.sales_unit_price_header }}</th>
+              <th>{{ T.sales_total_header }}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in order.get("items", []) %}
+            <tr>
+              <td>{{ item.product_name }}</td>
+              <td>{{ item.barcode }}</td>
+              <td>{{ item.quantity }}</td>
+              <td>{{ "%.2f"|format(item.sale_price) }} €</td>
+              <td>{{ "%.2f"|format(item.total_price) }} €</td>
+              <td>
+                {% if item.id %}
+                <a href="{{ url_for('edit_sale', sale_item_id=item.id) }}" class="btn btn-sm btn-outline-secondary">{{ T.common_edit }}</a>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h5>{{ T.sales_total_sum_label }} <span style="color: green;">€{{ "%.2f"|format(order.total_order_price) }}</span></h5>
+          {% if order.total_refunded is defined and order.total_refunded > 0 %}
+            <small class="text-warning">{{ T.sales_refund_total_refunded }}: €{{ "%.2f"|format(order.total_refunded) }}</small>
+          {% endif %}
+        </div>
+        <div>
+          <!-- 🔙 Refund Button -->
+          <button onclick='openRefundModal({{ order | tojson | safe }})' class="btn btn-sm btn-warning me-1">{{ T.sales_refund_btn }}</button>
+
+          <!-- 🧾 Receipt Button -->
+          <button onclick='showReceiptInPopup({{ order | tojson | safe }})'  class="btn btn-sm btn-primary">{{ T.sales_receipt_btn }}</button>
+
+          <!-- 🗑️ Delete Button -->
+          <form method="POST"
+                action="{{ url_for('delete_sales_order_route', order_id=order.order_id) }}"
+                style="display:inline;"
+                onsubmit="return confirm({{ T.admin_sales_confirm_delete | tojson }});"
+          >
+            <button type="submit" class="btn btn-sm btn-danger">{{ T.admin_sales_delete_btn }}</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <p class="text-center">{{ T.sales_none_found }}</p>
+  {% endfor %}
+</div>
+
+<script>
+// Refund feature i18n — injected for sales-refund.js
+window.i18nRefund = {
+  refundTitle: {{ T.sales_refund_title | tojson }},
+  refundBtn: {{ T.sales_refund_btn | tojson }},
+  refundSubmit: {{ T.sales_refund_submit | tojson }},
+  refundProcessing: {{ T.sales_refund_processing | tojson }},
+  refundSuccess: {{ T.sales_refund_success | tojson }},
+  refundError: '❌ ' + {{ T.sales_refund_title | tojson }} + ' fehlgeschlagen.',
+  refundCash: {{ T.sales_refund_cash | tojson }},
+  refundCard: {{ T.sales_refund_card | tojson }},
+  refundReason: {{ T.sales_refund_reason | tojson }},
+  refundReasonPh: {{ T.sales_refund_reason_ph | tojson }},
+  refundHistory: {{ T.sales_refund_history | tojson }},
+  refundTotalRefunded: {{ T.sales_refund_total_refunded | tojson }},
+  refundNoRefunds: {{ T.sales_refund_no_refunds | tojson }},
+  refundAmountRefunded: {{ T.sales_refund_amount_refunded | tojson }},
+  refundSelectItems: {{ T.sales_refund_select_items | tojson }},
+  refundQtyToRefund: {{ T.sales_refund_qty_to_refund | tojson }},
+  refundMethod: {{ T.sales_refund_method | tojson }},
+  refundItem: {{ T.sales_refund_item | tojson }},
+  refundBarcode: {{ T.sales_refund_barcode | tojson }},
+  refund_stock_restored: {{ T.sales_refund_stock_restored | tojson }},
+  stripeNotConfigured: {{ T.stripe_not_configured | tojson }},
+  commonCancel: {{ T.common_cancel | tojson }},
+};
+// Stripe Terminal config for card refund availability
+window.stripeTerminal = {
+  configured: {{ 'true' if stripe_terminal.configured else 'false' }},
+};
+const i18n = {
+  unknown: {{ T.dash_unknown | tojson }},
+  receiptPageTitle: {{ T.sales_receipt_page_title | tojson }},
+  sellerLabel: {{ T.sales_seller_label | tojson }},
+  dateLabel: {{ T.common_date | tojson }},
+  productHeader: {{ T.sales_product_header | tojson }},
+  barcodeHeader: {{ T.common_barcode | tojson }},
+  quantityHeader: {{ T.common_quantity | tojson }},
+  unitPriceHeader: {{ T.sales_unit_price_header | tojson }},
+  totalHeader: {{ T.sales_total_header | tojson }},
+  totalSumLabel: {{ T.sales_total_sum_label | tojson }},
+  thankYou: {{ T.sales_thank_you | tojson }}
+};
+
+function filterOrders() {
+  const input = document.getElementById("searchInput").value.toLowerCase();
+  const orders = document.querySelectorAll("#sales-container .card");
+
+  orders.forEach(order => {
+    const text = order.textContent.toLowerCase();
+    order.style.display = text.includes(input) ? "" : "none";
+  });
+}
+
+function showReceiptInPopup(order) {
+  const escapeHtml = (unsafe) => {
+    if (!unsafe) return "";
+    return unsafe
+      .toString()
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  };
+
+  const formattedDate = order.date
+    ? order.date.replace("T", " ").slice(0, 19)
+    : i18n.unknown;
+
+  let itemsHTML = "";
+  order.items.forEach(item => {
+    itemsHTML += `
+      <tr>
+        <td>${escapeHtml(item.product_name)}</td>
+        <td>${escapeHtml(item.barcode)}</td>
+        <td>${item.quantity}</td>
+        <td>${Number(item.sale_price).toFixed(2)} €</td>
+        <td>${Number(item.total_price).toFixed(2)} €</td>
+      </tr>`;
+  });
+
+  const receiptHTML = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8" />
+      <title>${i18n.receiptPageTitle}</title>
+      <style>
+        @page {
+          size: A4;
+          margin: 20mm;
+        }
+
+        body {
+          font-family: Arial, sans-serif;
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+
+        .header {
+          display: flex;
+          align-items: center;
+          margin-bottom: 10px;
+        }
+
+        .header img {
+          height: 70px;
+          margin-right: 20px;
+        }
+
+        h3, h4, p {
+          margin: 0 0 8px;
+        }
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 15px;
+        }
+
+        td, th {
+          border: 1px solid #ccc;
+          padding: 8px;
+          font-size: 14px;
+        }
+
+        th {
+          background-color: #f8f8f8;
+        }
+
+        .total {
+          text-align: right;
+          font-size: 16px;
+          margin-top: 20px;
+        }
+
+        .thanks {
+          text-align: right;
+          margin-top: 10px;
+        }
+
+        @media print {
+          body {
+            width: 100%;
+            padding: 0;
+            margin: 0;
+          }
+
+          .header img {
+            height: 60px;
+          }
+        }
+      </style>
+    </head>
+    <body onload="window.print()">
+      <div class="header">
+        <img src="${location.origin}/static/images/logo.png" alt="Logo" />
+        <div>
+          <h3>Meine Firma</h3>
+          <p>Musterstraße 1, 12345 Musterstadt</p>
+        </div>
+      </div>
+
+      <hr>
+
+      <h4>${i18n.sellerLabel} ${escapeHtml(order.user)}</h4>
+      <p><strong>${i18n.dateLabel}:</strong> ${escapeHtml(formattedDate)}</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>${i18n.productHeader}</th>
+            <th>${i18n.barcodeHeader}</th>
+            <th>${i18n.quantityHeader}</th>
+            <th>${i18n.unitPriceHeader}</th>
+            <th>${i18n.totalHeader}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHTML}
+        </tbody>
+      </table>
+
+      <div class="total">
+        <h4>${i18n.totalSumLabel} <span style="color: green;">€${Number(order.total_order_price).toFixed(2)}</span></h4>
+      </div>
+
+      <div class="thanks">
+        <p>${i18n.thankYou}</p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const popup = window.open('', '_blank', 'width=1024,height=800');
+  popup.document.write(receiptHTML);
+  popup.document.close();
+}
+</script>
+<script src="{{ url_for('static', filename='js/sales-refund.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>{{ T.purchase_page_title }}</h2>
+
+<h4 style="color: red;">{{ T.purchase_low_stock_heading }}</h4>
+<ul>
+    {% for item in low_stock_items %}
+        <li>
+            <strong>{{ item.name }}</strong> – {{ T.purchase_stock_label }}: {{ item.quantity }}<br>
+            <img src="{{ item.photo_link }}" alt="{{ item.name }}" width="100"><br>
+        </li>
+    {% else %}
+        <li>{{ T.purchase_no_low_stock }}</li>
+    {% endfor %}
+</ul>
+
+<hr>
+
+<h3>{{ T.purchase_form_heading }}</h3>
+<form method="POST">
+    <label>{{ T.purchase_product_name }}:</label>
+    <input type="text" name="name" required><br><br>
+
+    <label>{{ T.purchase_reference_barcode }}:</label>
+    <input type="text" name="barcode" required><br><br>
+
+    <label>{{ T.purchase_photo_url }}:</label>
+    <input type="text" name="photo_link"><br><br>
+
+    <label>{{ T.common_description }}:</label>
+    <textarea name="description" required></textarea><br><br>
+
+    <label>{{ T.purchase_price_per_unit }}:</label>
+    <input type="number" step="0.01" name="price" required><br><br>
+
+    <label>{{ T.purchase_quantity_to_order }}:</label>
+    <input type="number" name="quantity" required><br><br>
+
+    <button type="submit">{{ T.purchase_submit }}</button>
+</form>
+
+{% endblock %}

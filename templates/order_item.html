@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}{{ T.order_item_title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2>{{ T.order_item_title }}</h2>
+
+  <form method="POST" action="{{ url_for('order') }}" enctype="multipart/form-data">
+    <div class="mb-3">
+      <label for="product_name" class="form-label">{{ T.purchase_product_name }}</label>
+      <input type="text" id="product_name" name="product_name" class="form-control" required>
+    </div>
+
+    <!-- Toggle to use existing barcode -->
+    <div class="form-check form-switch mb-3">
+      <input class="form-check-input" type="checkbox" id="use_existing_barcode" onchange="toggleBarcodeField()">
+      <label class="form-check-label" for="use_existing_barcode">{{ T.order_item_use_existing_barcode }}</label>
+    </div>
+
+    <!-- Barcode input -->
+    <div class="mb-3">
+      <label for="ref_number" class="form-label">{{ T.common_barcode }}</label>
+      <input type="text" id="ref_number" name="ref_number" class="form-control" disabled placeholder="{{ T.order_item_barcode_auto_placeholder }}">
+    </div>
+
+    <div class="mb-3">
+      <label for="price" class="form-label">{{ T.order_item_purchase_price }}</label>
+      <input type="number" step="0.01" id="price" name="price" class="form-control" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="selling_price" class="form-label">{{ T.order_item_selling_price }}</label>
+      <input type="number" step="0.01" id="selling_price" name="selling_price" class="form-control" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="min_selling_price" class="form-label">{{ T.order_item_min_selling_price }}</label>
+      <input type="number" step="0.01" id="min_selling_price" name="min_selling_price" class="form-control" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="quantity" class="form-label">{{ T.common_quantity }}</label>
+      <input type="number" id="quantity" name="quantity" class="form-control" required value="1" min="1">
+    </div>
+
+    <div class="mb-3">
+      <label for="description" class="form-label">{{ T.common_description }}</label>
+      <textarea id="description" name="description" class="form-control" rows="3"></textarea>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label d-block">{{ T.debts_payment_method_label }}</label>
+      <div class="btn-group w-100" role="group" aria-label="{{ T.debts_payment_method_label }}">
+        <input type="radio" class="btn-check" name="payment_method" id="orderPayCash" value="cash" checked>
+        <label class="btn btn-outline-primary" for="orderPayCash"><i class="bi bi-cash-coin"></i> {{ T.debts_payment_method_cash }}</label>
+        <input type="radio" class="btn-check" name="payment_method" id="orderPayCard" value="card" {% if not stripe_terminal.configured %}disabled{% endif %}>
+        <label class="btn btn-outline-primary" for="orderPayCard"><i class="bi bi-credit-card"></i> {{ T.debts_payment_method_card }}</label>
+      </div>
+      {% if not stripe_terminal.configured %}
+      <div class="form-text">{{ T.stripe_not_configured }}</div>
+      {% endif %}
+      <input type="hidden" name="stripe_payment_intent_id" id="orderStripePaymentIntentId" value="">
+    </div>
+
+    <div id="orderCardStatus" class="alert alert-info d-none" role="status"></div>
+
+    <button type="submit" class="btn btn-primary" id="orderSubmitBtn">{{ T.order_item_submit }}</button>
+  </form>
+</div>
+
+{% if stripe_terminal.configured %}
+<script src="https://js.stripe.com/terminal/v1/"></script>
+<script src="{{ url_for('static', filename='js/stripe-terminal.js') }}"></script>
+{% endif %}
+
+<script>
+function toggleBarcodeField() {
+  const checkbox = document.getElementById('use_existing_barcode');
+  const barcodeInput = document.getElementById('ref_number');
+
+  if (checkbox.checked) {
+    barcodeInput.disabled = false;
+    barcodeInput.placeholder = {{ T.order_item_barcode_manual_placeholder | tojson }};
+  } else {
+    barcodeInput.disabled = true;
+    barcodeInput.value = "";
+    barcodeInput.placeholder = {{ T.order_item_barcode_auto_placeholder | tojson }};
+  }
+}
+
+// A "card" purchase order must go through the physical Stripe Terminal
+// reader first, exactly like sales and debt payments do — never just send
+// payment_method=card to the server without an actual verified charge.
+window.STRIPE_TERMINAL_CONFIG = {{ stripe_terminal | tojson }};
+
+const orderI18n = {
+  cardReaderDiscovering: {{ T.stripe_status_reader_discovering | tojson }},
+  cardReaderConnecting: {{ T.stripe_status_reader_connecting | tojson }},
+  cardCreatingIntent: {{ T.stripe_status_creating_intent | tojson }},
+  cardPresentCard: {{ T.stripe_status_present_card | tojson }},
+  cardProcessing: {{ T.stripe_status_processing | tojson }},
+  cardErrorPrefix: {{ T.stripe_status_error_prefix | tojson }},
+  cardNotConfigured: {{ T.stripe_not_configured | tojson }},
+};
+
+const orderForm = document.querySelector('form[action="{{ url_for('order') }}"]');
+const orderCardStatus = document.getElementById('orderCardStatus');
+const orderSubmitBtn = document.getElementById('orderSubmitBtn');
+let orderCardPaymentConfirmed = false;
+
+function setOrderCardStatus(text, isError) {
+  if (!text) {
+    orderCardStatus.classList.add('d-none');
+    orderCardStatus.textContent = '';
+    return;
+  }
+  orderCardStatus.classList.remove('d-none', 'alert-info', 'alert-danger');
+  orderCardStatus.classList.add(isError ? 'alert-danger' : 'alert-info');
+  orderCardStatus.textContent = text;
+}
+
+orderForm.addEventListener('submit', function (e) {
+  const isCard = document.getElementById('orderPayCard').checked;
+  if (!isCard || orderCardPaymentConfirmed) {
+    return; // cash, or the card payment already went through below
+  }
+  e.preventDefault();
+
+  if (!window.StripeTerminalPay || !window.STRIPE_TERMINAL_CONFIG || !window.STRIPE_TERMINAL_CONFIG.configured) {
+    setOrderCardStatus(orderI18n.cardNotConfigured, true);
+    return;
+  }
+
+  const price = parseFloat(document.getElementById('price').value) || 0;
+  const quantity = parseInt(document.getElementById('quantity').value, 10) || 0;
+  const total = Math.round(price * quantity * 100) / 100;
+
+  orderSubmitBtn.disabled = true;
+
+  const statusLabels = {
+    reader_discovering: orderI18n.cardReaderDiscovering,
+    reader_connecting: orderI18n.cardReaderConnecting,
+    creating_intent: orderI18n.cardCreatingIntent,
+    present_card: orderI18n.cardPresentCard,
+    processing: orderI18n.cardProcessing,
+  };
+
+  StripeTerminalPay.collectPayment(total, { context: 'purchase_order', reference: 'new-order' }, {
+    onStatus: (key) => setOrderCardStatus(statusLabels[key] || key, false),
+  }).then((paymentIntentId) => {
+    document.getElementById('orderStripePaymentIntentId').value = paymentIntentId;
+    setOrderCardStatus('', false);
+    orderCardPaymentConfirmed = true;
+    orderForm.submit();
+  }).catch((err) => {
+    setOrderCardStatus(orderI18n.cardErrorPrefix + ' ' + err.message, true);
+    orderSubmitBtn.disabled = false;
+  });
+});
+</script>
+
+{% endblock %}

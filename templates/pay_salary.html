@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}{{ T.salary_page_title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2>{{ T.salary_page_title }}</h2>
+  <form method="POST" id="salaryForm">
+
+    <!-- Mitarbeiter auswählen -->
+    <div class="mb-3">
+      <label for="employee_name" class="form-label">{{ T.salary_select_employee }}</label>
+      <select class="form-select" id="employee_name" name="employee_name" required>
+        <option value="" disabled selected>{{ T.salary_select_placeholder }}</option>
+        {% for user in users %}
+          <option value="{{ user.username }}" data-salary="{{ employee_salaries.get(user.username, 0) }}">
+            {{ user.username }} — {{ '%.2f'|format(employee_salaries.get(user.username, 0)) }} €
+          </option>
+        {% endfor %}
+      </select>
+      {% if not users %}
+        <div class="form-text text-danger">{{ T.salary_no_employees }}</div>
+      {% endif %}
+    </div>
+
+    <!-- Gehaltsbetrag -->
+    <div class="mb-3">
+      <label for="salary_amount" class="form-label">{{ T.salary_amount_label }}</label>
+      <input type="number" step="0.01" class="form-control" id="salary_amount" name="salary_amount" min="0.01" required>
+      <div class="form-text" id="suggestedSalaryHint"></div>
+    </div>
+
+    <!-- Zahlungsquelle auswählen -->
+    <div class="mb-3">
+      <label class="form-label">{{ T.salary_paid_from }}</label>
+      <div class="form-check">
+        <input class="form-check-input" type="radio" name="payment_source" id="from_drawer" value="Kasse" checked>
+        <label class="form-check-label" for="from_drawer">{{ T.salary_from_drawer }}</label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="radio" name="payment_source" id="from_pocket" value="Privat">
+        <label class="form-check-label" for="from_pocket">{{ T.salary_from_pocket }}</label>
+      </div>
+    </div>
+
+    <!-- Zusätzliche Anmerkungen -->
+    <div class="mb-3">
+      <label for="note" class="form-label">{{ T.salary_note }}</label>
+      <textarea class="form-control" id="note" name="note" rows="3"></textarea>
+    </div>
+
+    <!-- Interaktive Zusammenfassung -->
+    <div class="alert alert-info" id="summaryBox" style="display:none;">
+      <strong>{{ T.salary_summary_title }}</strong> {{ T.salary_summary_text }} <span id="summaryAmount">0</span> € {{ T.salary_summary_to }} <span id="summaryUser">--</span> {{ T.salary_summary_from }} <span id="summarySource">{{ T.salary_summary_default_source }}</span>.
+    </div>
+
+    <button type="submit" class="btn btn-success" {% if not users %}disabled{% endif %}>{{ T.salary_confirm_submit }}</button>
+  </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const amountInput = document.getElementById('salary_amount');
+  const userSelect = document.getElementById('employee_name');
+  const sourceInputs = document.querySelectorAll('input[name="payment_source"]');
+  const summaryBox = document.getElementById('summaryBox');
+  const summaryAmount = document.getElementById('summaryAmount');
+  const summaryUser = document.getElementById('summaryUser');
+  const summarySource = document.getElementById('summarySource');
+  const suggestedSalaryHint = document.getElementById('suggestedSalaryHint');
+
+  // Smart default: as soon as an employee is picked, pre-fill their
+  // configured monthly salary so the admin doesn't have to remember or
+  // look it up elsewhere. The amount stays fully editable for partial
+  // payments, bonuses, or corrections.
+  userSelect.addEventListener('change', () => {
+    const selectedOption = userSelect.options[userSelect.selectedIndex];
+    const suggested = parseFloat(selectedOption?.dataset.salary || '0');
+    if (suggested > 0) {
+      amountInput.value = suggested.toFixed(2);
+      suggestedSalaryHint.textContent = `{{ T.salary_configured_hint_prefix }} ${suggested.toFixed(2)} €`;
+    } else {
+      suggestedSalaryHint.textContent = '';
+    }
+    updateSummary();
+  });
+
+  function updateSummary() {
+    const amount = amountInput.value;
+    const user = userSelect.value;
+    const source = document.querySelector('input[name="payment_source"]:checked').value;
+
+    if (amount > 0 && user) {
+      summaryAmount.textContent = amount;
+      summaryUser.textContent = user;
+      summarySource.textContent = source;
+      summaryBox.style.display = 'block';
+    } else {
+      summaryBox.style.display = 'none';
+    }
+  }
+
+  amountInput.addEventListener('input', updateSummary);
+  sourceInputs.forEach(input => input.addEventListener('change', updateSummary));
+});
+</script>
+{% endblock %}

@@ -1,0 +1,5 @@
+{
+    "tailwind_apps": ["home", "staff", "admin_auth"],
+    "tailwind_css": "css/app.css",
+    "tailwind_output_css": "css/output.css",
+    "width": "100%"

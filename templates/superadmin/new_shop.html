@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}New Shop{% endblock %}
+{% block page_title %}New Shop{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <form method="post" class="card p-4 shadow-sm">
+      <h4 class="mb-3">Create a new shop</h4>
+
+      <div class="mb-3">
+        <label class="form-label">Shop name</label>
+        <input type="text" name="shop_name" class="form-control" value="{{ form.shop_name or '' }}" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Admin username</label>
+        <input type="text" name="admin_username" class="form-control" value="{{ form.admin_username or '' }}" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Admin password</label>
+        <input type="password" name="admin_password" class="form-control" minlength="6" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Plan</label>
+        <select name="plan" class="form-select">
+          {% for key, plan in plans.items() %}
+          <option value="{{ key }}" {{ 'selected' if form.plan == key else '' }}>
+            {{ plan.name }} (€{{ plan.price_eur }}/mo)
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Create shop</button>
+      <a href="{{ url_for('superadmin_dashboard') }}" class="btn btn-link">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

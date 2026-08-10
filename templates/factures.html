@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}{{ T.factures_page_title }} - {{ T.platform_name }}{% endblock %}
+{% block page_title %}{{ T.factures_page_title }} / Factures{% endblock %}
+
+{% block content %}
+
+<div class="hero-banner">
+  <div class="hero-banner-decor"></div>
+  <div class="hero-content">
+    <div>
+      <div class="hero-eyebrow">{{ T.facture_management_area }}</div>
+      <h1>{{ T.factures_heading }}</h1>
+      <p>{{ T.factures_subtitle }}</p>
+    </div>
+    <a href="{{ url_for('add_facture_route') }}" class="btn btn-light fw-semibold">
+      <i class="bi bi-plus-circle me-1"></i> {{ T.factures_new_btn }}
+    </a>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat-box">
+    <h2><i class="bi bi-files"></i> {{ T.factures_count_label }}</h2>
+    <p>{{ summary.count }}</p>
+  </div>
+  <div class="stat-box">
+    <h2><i class="bi bi-wallet2"></i> {{ T.factures_total_amount }}</h2>
+    <p>€{{ "{:,.2f}".format(summary.total_amount) }}</p>
+  </div>
+  <div class="stat-box">
+    <h2><i class="bi bi-exclamation-circle"></i> {{ T.dash_open_label }}</h2>
+    <p class="text-loss">€{{ "{:,.2f}".format(summary.unpaid_amount) }}</p>
+  </div>
+  <div class="stat-box">
+    <h2><i class="bi bi-check-circle"></i> {{ T.clients_status_paid }}</h2>
+    <p class="text-profit">€{{ "{:,.2f}".format(summary.paid_amount) }}</p>
+  </div>
+</div>
+
+<div class="card p-3 mb-3">
+  <form method="GET" class="filter-bar">
+    <div>
+      <label class="form-label small text-muted mb-1">{{ T.facture_type_label }}</label>
+      <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value="">{{ T.factures_filter_all_types }}</option>
+        {% for key, label in facture_types.items() %}
+          <option value="{{ key }}" {{ 'selected' if selected_type == key }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="form-label small text-muted mb-1">{{ T.common_status }}</label>
+      <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value="">{{ T.factures_filter_all }}</option>
+        <option value="unpaid" {{ 'selected' if selected_status == 'unpaid' }}>{{ T.dash_open_label }}</option>
+        <option value="paid" {{ 'selected' if selected_status == 'paid' }}>{{ T.clients_status_paid }}</option>
+      </select>
+    </div>
+    {% if selected_type or selected_status %}
+      <a href="{{ url_for('list_factures') }}" class="btn btn-sm btn-outline-secondary align-self-end">{{ T.factures_reset_filter }}</a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{{ T.facture_type_label }}</th>
+        <th>{{ T.facture_issuer_header }}</th>
+        <th>{{ T.facture_reference_header }}</th>
+        <th>{{ T.facture_issue_date_label }}</th>
+        <th>{{ T.facture_due_date_label }}</th>
+        <th class="text-end">{{ T.common_amount }}</th>
+        <th class="text-center">{{ T.common_status }}</th>
+        <th class="text-end" data-no-sort>{{ T.common_actions }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in factures %}
+        <tr>
+          <td>
+            <span class="type-pill type-{{ f.facture_type }}">
+              {{ facture_types.get(f.facture_type, f.facture_type) }}
+            </span>
+          </td>
+          <td>{{ f.issuer }}</td>
+          <td>{{ f.reference or '—' }}</td>
+          <td>{{ f.issue_date.strftime('%d.%m.%Y') if f.issue_date else '—' }}</td>
+          <td class="{{ 'text-loss' if f.is_overdue else '' }}">
+            {{ f.due_date.strftime('%d.%m.%Y') if f.due_date else '—' }}
+            {% if f.is_overdue %}<i class="bi bi-exclamation-triangle-fill ms-1" title="{{ T.factures_overdue_title }}"></i>{% endif %}
+          </td>
+          <td class="text-end">{{ f.currency }} {{ "{:,.2f}".format(f.amount) }}</td>
+          <td class="text-center">
+            <form method="POST" action="{{ url_for('mark_facture_paid', facture_id=f.id) }}" class="d-inline">
+              <button type="submit" class="badge-btn badge-{{ 'paid' if f.status == 'paid' else 'unpaid' }}">
+                {{ T.clients_status_paid if f.status == 'paid' else T.dash_open_label }}
+              </button>
+            </form>
+          </td>
+          <td class="text-end">
+            <a href="{{ url_for('edit_facture_route', facture_id=f.id) }}" class="btn btn-sm btn-outline-secondary" title="{{ T.common_edit }}">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <form method="POST" action="{{ url_for('delete_facture_route', facture_id=f.id) }}" class="d-inline"
+                  onsubmit="return confirm({{ T.factures_confirm_delete | tojson }});">
+              <button type="submit" class="btn btn-sm btn-danger" title="{{ T.common_delete }}">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="8" class="text-center py-5">
+            <div class="empty-state">
+              <i class="bi bi-file-earmark-text"></i>
+              <p class="mb-2">{{ T.factures_none_yet }}</p>
+              <a href="{{ url_for('add_facture_route') }}" class="btn btn-sm btn-primary">{{ T.factures_create_first }}</a>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<style>
+.filter-bar { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; }
+.filter-bar select { min-width: 200px; }
+
+.type-pill {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  white-space: nowrap;
+}
+.type-ebay { background: var(--gold-soft); color: #8a5f13; }
+.type-electricity { background: var(--warning-soft); color: #8a5f13; }
+.type-water { background: var(--brand-soft); color: var(--brand-dark); }
+.type-internet { background: #E7E9FB; color: #4A4FBF; }
+.type-phone { background: #E7E9FB; color: #4A4FBF; }
+.type-supplier { background: var(--success-soft); color: #146a48; }
+.type-rent { background: var(--danger-soft); color: #a12328; }
+.type-other { background: #EFEFEF; color: #555; }
+
+.badge-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.badge-paid { background: var(--success-soft); color: #146a48; }
+.badge-unpaid { background: var(--danger-soft); color: #a12328; }
+</style>
+{% endblock %}

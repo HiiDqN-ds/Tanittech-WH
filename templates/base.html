@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="{{ site_lang }}" dir="{{ site_dir }}">
+<head>
+  <script>
+    // Applied before any CSS loads so switching themes never flashes the old one.
+    (function () {
+      try {
+        var t = localStorage.getItem('ui-theme') || 'new';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <meta name="theme-color" content="#0A0D16" />
+  <meta name="color-scheme" content="dark" />
+  <title>{% block title %}{{ T.platform_name }}{% endblock %}</title>
+
+  <!-- CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+        integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr"
+        crossorigin="anonymous">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
+        rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/data-table.css') }}">
+
+  <!-- JavaScript -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="{{ url_for('static', filename='js/data-table.js') }}" defer></script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <a class="sidebar-brand" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" class="logo">
+    </a>
+
+    <nav class="sidebar-nav">
+      {% if session.get('role') == 'admin' %}
+        <div class="nav-group-label">{{ T.group_overview }}</div>
+        <a href="{{ url_for('index') }}" class="side-link {{ 'active' if request.endpoint in ['index', 'admin_dashboard'] }}">
+          <i class="bi bi-speedometer2"></i> {{ T.nav_dashboard }}
+        </a>
+        {% if shop_features.assistant %}
+        <a href="{{ url_for('assistant_home') }}" class="side-link {{ 'active' if request.endpoint == 'assistant_home' }}">
+          <i class="bi bi-stars"></i> {{ T.nav_home_chat }}
+        </a>
+        {% endif %}
+        <a href="{{ url_for('kasse') }}" class="side-link {{ 'active' if request.endpoint == 'kasse' }}">
+          <i class="bi bi-cash-coin"></i> {{ T.nav_kasse }}
+        </a>
+
+        <div class="nav-group-label">{{ T.group_stock }}</div>
+        <a href="{{ url_for('list_items') }}" class="side-link {{ 'active' if request.endpoint == 'list_items' }}">
+          <i class="bi bi-box-seam"></i> {{ T.nav_products }}
+        </a>
+        <a href="{{ url_for('list_orders') }}" class="side-link {{ 'active' if request.endpoint == 'list_orders' }}">
+          <i class="bi bi-bag"></i> {{ T.nav_purchase }}
+        </a>
+
+        <div class="nav-group-label">{{ T.group_sales }}</div>
+        <a href="{{ url_for('sell_item') }}" class="side-link {{ 'active' if request.endpoint == 'sell_item' }}">
+          <i class="bi bi-cash-coin"></i> {{ T.nav_sell }}
+        </a>
+        <a href="{{ url_for('admin_sales') }}" class="side-link {{ 'active' if request.endpoint == 'admin_sales' }}">
+          <i class="bi bi-receipt"></i> {{ T.nav_my_sales }}
+        </a>
+        <a href="{{ url_for('schulden') }}" class="side-link {{ 'active' if request.endpoint == 'schulden' }}">
+          <i class="fas fa-money-bill-wave"></i> {{ T.nav_debts }}
+        </a>
+
+        <div class="nav-group-label">{{ T.group_invoices }}</div>
+        <a href="{{ url_for('list_factures') }}" class="side-link {{ 'active' if request.endpoint in ['list_factures', 'add_facture_route', 'edit_facture_route'] }}">
+          <i class="bi bi-file-earmark-text"></i> {{ T.nav_invoices }}
+        </a>
+
+        <div class="nav-group-label">{{ T.group_staff }}</div>
+        <a href="{{ url_for('list_sellers') }}" class="side-link {{ 'active' if request.endpoint == 'list_sellers' }}">
+          <i class="bi bi-people"></i> {{ T.nav_sellers }}
+        </a>
+        <a href="{{ url_for('pay_salary') }}" class="side-link {{ 'active' if request.endpoint == 'pay_salary' }}">
+          <i class="bi bi-wallet2"></i> {{ T.nav_salary }}
+        </a>
+        <a href="{{ url_for('list_salary_payments') }}" class="side-link {{ 'active' if request.endpoint == 'list_salary_payments' }}">
+          <i class="bi bi-clock-history"></i> {{ T.nav_salary_history }}
+        </a>
+
+        <div class="nav-group-label">{{ T.group_overview }}</div>
+        <a href="{{ url_for('admin_audit_log') }}" class="side-link {{ 'active' if request.endpoint == 'admin_audit_log' }}">
+          <i class="bi bi-shield-check"></i> {{ T.nav_audit_log }}
+        </a>
+        {% if shop_features.assistant %}
+        <a href="{{ url_for('assistant_app') }}" class="side-link" target="_blank" rel="noopener">
+          <i class="bi bi-phone"></i> {{ T.nav_chat_app }}
+        </a>
+        {% endif %}
+        <a href="{{ url_for('billing.status') }}" class="side-link {{ 'active' if request.endpoint == 'billing.status' }}">
+          <i class="bi bi-credit-card"></i> {{ T.nav_billing }}
+        </a>
+
+      {% elif session.get('role') == 'seller' %}
+        <div class="nav-group-label">{{ T.group_overview }}</div>
+        <a href="{{ url_for('index') }}" class="side-link {{ 'active' if request.endpoint in ['index', 'seller_dashboard'] }}">
+          <i class="bi bi-speedometer2"></i> {{ T.nav_dashboard }}
+        </a>
+        {% if shop_features.assistant %}
+        <a href="{{ url_for('assistant_home') }}" class="side-link {{ 'active' if request.endpoint == 'assistant_home' }}">
+          <i class="bi bi-stars"></i> {{ T.nav_home_chat }}
+        </a>
+        {% endif %}
+        <a href="{{ url_for('kasse') }}" class="side-link {{ 'active' if request.endpoint == 'kasse' }}">
+          <i class="bi bi-cash-coin"></i> {{ T.nav_kasse }}
+        </a>
+
+        <div class="nav-group-label">{{ T.group_stock }}</div>
+        <a href="{{ url_for('seller_items') }}" class="side-link {{ 'active' if request.endpoint == 'seller_items' }}">
+          <i class="bi bi-box-seam"></i> {{ T.nav_products }}
+        </a>
+        <a href="{{ url_for('list_orders') }}" class="side-link {{ 'active' if request.endpoint == 'list_orders' }}">
+          <i class="bi bi-bag"></i> {{ T.nav_purchase }}
+        </a>
+
+        <div class="nav-group-label">{{ T.group_sales }}</div>
+        <a href="{{ url_for('sell_item') }}" class="side-link {{ 'active' if request.endpoint == 'sell_item' }}">
+          <i class="bi bi-cash-coin"></i> {{ T.nav_sell }}
+        </a>
+        <a href="{{ url_for('seller_sales') }}" class="side-link {{ 'active' if request.endpoint == 'seller_sales' }}">
+          <i class="bi bi-receipt"></i> {{ T.nav_my_sales }}
+        </a>
+        {% if shop_features.assistant %}
+        <a href="{{ url_for('assistant_app') }}" class="side-link" target="_blank" rel="noopener">
+          <i class="bi bi-phone"></i> {{ T.nav_chat_app }}
+        </a>
+        {% endif %}
+      {% elif session.get('role') == 'superadmin' %}
+        <div class="nav-group-label">Platform</div>
+        <a href="{{ url_for('superadmin_dashboard') }}" class="side-link {{ 'active' if request.endpoint == 'superadmin_dashboard' }}">
+          <i class="bi bi-shop"></i> Shops
+        </a>
+        <a href="{{ url_for('new_shop') }}" class="side-link {{ 'active' if request.endpoint == 'new_shop' }}">
+          <i class="bi bi-plus-lg"></i> New shop
+        </a>
+        <a href="{{ url_for('superadmin_accounts') }}" class="side-link {{ 'active' if request.endpoint == 'superadmin_accounts' }}">
+          <i class="bi bi-people"></i> Accounts
+        </a>
+      {% endif %}
+    </nav>
+
+    {% if session.get('role') %}
+    <div class="sidebar-footer">
+      <a href="{{ url_for('logout') }}" class="side-link logout-link">
+        <i class="bi bi-box-arrow-right"></i> {{ T.logout }}
+      </a>
+    </div>
+    {% endif %}
+  </aside>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <!-- Main column -->
+  <div class="app-main">
+    <div class="topbar">
+      <button class="sidebar-toggle" id="sidebarToggle" aria-label="{{ T.menu_toggle }}">
+        <i class="bi bi-list"></i>
+      </button>
+      <div class="topbar-title">{% block page_title %}{% endblock %}</div>
+
+      <div class="site-lang-switch" role="group" aria-label="{{ T.switch_language }}">
+        {% for code in supported_langs %}
+          <a href="{{ url_for('set_language', lang=code) }}"
+             class="site-lang-btn {{ 'active' if site_lang == code }}">{{ code|upper }}</a>
+        {% endfor %}
+      </div>
+
+      <button type="button" id="themeToggle" class="theme-toggle-btn" title="Switch look">
+        <i class="bi bi-stars"></i>
+        <span class="theme-toggle-label">New</span>
+      </button>
+
+      {% if session.get('username') %}
+        <div class="topbar-user">
+          <i class="bi bi-person-circle"></i>
+          <span>{{ session['username'] }}</span>
+          <span class="role-chip">
+            {% if session.get('role') == 'admin' %}{{ T.role_admin }}
+            {% elif session.get('role') == 'seller' %}{{ T.role_seller }}
+            {% else %}{{ session.get('role') }}{% endif %}
+          </span>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="barcode-accent"></div>
+
+    <main>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="mb-3">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+      <p>&copy; {{ current_year }} {{ T.platform_name }}. {{ T.footer_rights }}</p>
+    </footer>
+  </div>
+</div>
+
+{% if session.get('role') in ['admin', 'seller'] and request.endpoint != 'assistant_home' and shop_features.assistant %}
+<!-- Assistant chat widget. One single chat — no per-language split: it
+     detects whatever language the person types/speaks and answers in kind.
+     Its conversation persists (localStorage) across page navigation, and
+     "back" steps through the actual menu history instead of jumping home.
+     Excluded only on /assistant (assistant_home / home.html), which embeds
+     its own copy of this same markup inline as the page's main content
+     instead of a floating overlay — showing both there would duplicate
+     IDs. Every other page that extends base.html (including the actual
+     index/dashboard) gets the floating widget from here. -->
+<button class="assistant-launcher assistant-orb-launcher" id="assistantLauncher" aria-label="Assistent öffnen">
+  <img src="{{ url_for('static', filename='images/logo.png') }}" alt="" class="assistant-orb assistant-logo-orb">
+  <span class="assistant-ping"></span>
+</button>
+
+<div class="assistant-panel" id="assistantPanel" dir="ltr" data-site-lang="{{ site_lang }}">
+  <div class="assistant-header assistant-header-glass">
+    <button id="assistantBack" class="assistant-back-btn" aria-label="Back" style="display:none;">
+      <i class="bi bi-arrow-left"></i>
+    </button>
+    <div class="title">
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="" class="assistant-orb assistant-logo-orb">
+      <div class="title-block">
+        <span id="assistantTitle">Assistent</span>
+        <span class="subtitle">{{ T.platform_name }}</span>
+      </div>
+    </div>
+    <div class="assistant-lang-switch" id="headerLangSwitch">
+      <button type="button" class="assistant-lang-chip" data-lang="de" title="Deutsch">🇩🇪</button>
+      <button type="button" class="assistant-lang-chip" data-lang="en" title="English">🇬🇧</button>
+      <button type="button" class="assistant-lang-chip" data-lang="ar" title="العربية">🇸🇦</button>
+    </div>
+    <button id="assistantNewChatBtn" class="assistant-icon-btn" aria-label="New chat" title="New chat"><i class="bi bi-plus-lg"></i></button>
+    <button id="assistantHistoryBtn" class="assistant-icon-btn" aria-label="History" title="History"><i class="bi bi-clock-history"></i></button>
+    <button id="assistantClose" aria-label="Schließen"><i class="bi bi-x-lg"></i></button>
+  </div>
+  <div class="assistant-body" id="assistantBody"></div>
+  <form class="assistant-inputbar" id="assistantInputForm" autocomplete="off">
+    <button type="button" class="assistant-mic-btn" id="assistantMicBtn" aria-label="Voice input">
+      <i class="bi bi-mic-fill"></i>
+    </button>
+    <input type="text" id="assistantTextInput" class="assistant-text-input" placeholder="…" inputmode="text">
+    <button type="submit" class="assistant-send-btn" aria-label="Send"><i class="bi bi-send-fill"></i></button>
+  </form>
+</div>
+
+{% if stripe_terminal.configured %}
+<!-- The chat assistant can record card-paid purchase orders too, so it
+     needs the same Stripe Terminal reader access as the dedicated Kasse
+     pages. stripe-terminal.js guards itself against being loaded twice
+     (e.g. on a page that also includes it directly, like sell_item.html). -->
+<script src="https://js.stripe.com/terminal/v1/"></script>
+<script src="{{ url_for('static', filename='js/stripe-terminal.js') }}"></script>
+<script>window.STRIPE_TERMINAL_CONFIG = {{ stripe_terminal | tojson }};</script>
+{% endif %}
+<script>
+  // Which menu categories/actions the widget offers must match what the
+  // backend actually allows for this session (seller_allowed_tools() in
+  // app.py) — otherwise a seller sees buttons that just 403 when clicked.
+  // Defaults to the most restrictive role if session is somehow missing.
+  window.ASSISTANT_ROLE = {{ session.get('role', 'seller') | tojson }};
+  // Per-seller "KI-Assistent — zusätzliche Berechtigungen" grants — see
+  // seller_granted_categories() in app.py. can_kasse is kept for anything
+  // still reading that specific flag (e.g. kasse.html's own template check).
+  window.ASSISTANT_PERMS = {{ seller_categories | list | tojson }};
+  window.ASSISTANT_CAN_KASSE = {{ can_kasse | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/assistant.js') }}"></script>
+<script>
+  // Header language chips: switch the CHAT's language instantly (separate
+  // from the whole-site language switcher already in the topbar). Reusing
+  // a reload is simplest and safest here — assistant.js already reads
+  // localStorage.assistantLang on init, so this is a one-line source of
+  // truth with no risk of the two staying out of sync.
+  (function () {
+    var group = document.getElementById('headerLangSwitch');
+    if (!group) return;
+    var current = localStorage.getItem('assistantLang') || document.getElementById('assistantPanel').dataset.siteLang || 'de';
+    group.querySelectorAll('[data-lang]').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-lang') === current);
+    });
+    group.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-lang]');
+      if (!btn) return;
+      var lang = btn.getAttribute('data-lang');
+      if (lang === current) return;
+      localStorage.setItem('assistantLang', lang);
+      location.reload();
+    });
+  })();
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    const sidebar = document.getElementById('sidebar');
+    const toggle = document.getElementById('sidebarToggle');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    function closeSidebar() {
+      sidebar.classList.remove('open');
+      backdrop.classList.remove('show');
+    }
+    toggle?.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+      backdrop.classList.toggle('show');
+    });
+    backdrop?.addEventListener('click', closeSidebar);
+  })();
+
+  (function () {
+    const btn = document.getElementById('themeToggle');
+    const label = btn?.querySelector('.theme-toggle-label');
+    const icon = btn?.querySelector('i');
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const metaScheme = document.querySelector('meta[name="color-scheme"]');
+    function paintFor(theme) {
+      if (label) label.textContent = theme === 'classic' ? 'Classic' : 'New';
+      if (icon) icon.className = theme === 'classic' ? 'bi bi-palette' : 'bi bi-stars';
+      if (metaTheme) metaTheme.setAttribute('content', theme === 'classic' ? '#F4F6F5' : '#0A0D16');
+      if (metaScheme) metaScheme.setAttribute('content', theme === 'classic' ? 'light' : 'dark');
+    }
+    const current = document.documentElement.getAttribute('data-theme') || 'new';
+    paintFor(current);
+    btn?.addEventListener('click', () => {
+      const next = (document.documentElement.getAttribute('data-theme') || 'new') === 'classic' ? 'new' : 'classic';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('ui-theme', next); } catch (e) {}
+      paintFor(next);
+    });
+  })();
+</script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}{{ T.orders_page_title }}{% endblock %}
+
+{% block content %}
+
+<div class="table-responsive">
+  <h2>{{ T.orders_heading }}</h2>
+  <div class="d-flex justify-content-end mb-3">
+    <a href="{{ url_for('order') }}" class="btn btn-success">{{ T.orders_add_new }}</a>
+  </div>
+
+  <form method="get" class="mb-3 d-flex gap-2 align-items-end">
+    <div>
+      <label for="user">{{ T.orders_user_label }}</label>
+      <select name="user" id="user" class="form-select">
+        <option value="">{{ T.orders_all_option }}</option>
+        {% for u in users %}
+          <option value="{{ u }}" {% if request.args.get('user') == u %}selected{% endif %}>{{ u }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="date">{{ T.orders_date_label }}</label>
+      <input type="date" name="date" id="date" value="{{ request.args.get('date', '') }}" class="form-control">
+    </div>
+    <div class="flex-grow-1">
+      
+      <input type="text" name="q" id="q" class="form-control" placeholder="{{ T.purchases_search_placeholder }}"
+             value="{{ search_query or '' }}" autocomplete="off">
+    </div>
+    <button type="submit" class="btn btn-primary">{{ T.orders_filter_btn }}</button>
+    <a href="{{ url_for('list_orders') }}" class="btn btn-secondary">{{ T.orders_reset_btn }}</a>
+  </form>
+
+  <table class="table table-bordered align-middle data-table"
+         data-search-placeholder="{{ T.items_search_placeholder }}">
+    <thead class="table-light">
+      <tr>
+        <th>{{ T.common_barcode }}</th>
+        <th>{{ T.purchase_product_name }}</th>
+        <th>{{ T.item_purchase_price }} (€)</th>
+        <th>{{ T.item_selling_price }} (€)</th>
+        <th>{{ T.item_min_selling_price }} (€)</th>
+        <th>{{ T.common_quantity }}</th>
+        <th>{{ T.common_description }}</th>
+        <th>{{ T.dash_total_price }} (€)</th>
+        <th>{{ T.common_date }}</th>
+        <th>{{ T.kasse_user_header }}</th>
+        <th data-no-sort>{{ T.common_actions }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if orders %}
+        {% for order in orders|sort(attribute='date')|reverse %}
+        <tr>
+          <td>{{ order.order_number }}</td>
+          <td>{{ order.product_name }}</td>
+          <td>{{ order.price | default(0) | round(2) }}</td>
+          <td>{{ order.selling_price | default(0) | round(2) }}</td>
+          <td>{{ order.min_selling_price | default(0) | round(2) }}</td>
+          <td>{{ order.quantity }}</td>
+          <td>{{ order.description or '-' }}</td>
+          <td>€{{ order.total_price | default(0) | round(2) }}</td>
+          <td>{{ order.date }}</td>
+          <td>{{ order.user }}</td>
+          <td class="text-nowrap">
+            <button class="btn btn-outline-primary btn-sm me-1" title="{{ T.orders_print_receipt_title }}" onclick="printReceipt({{ loop.index0 }})">
+              <i class="bi bi-receipt me-1"></i>
+            </button>
+{% if shop_features.barcode_printing %}
+<a href="{{ url_for('barcode_label', barcode_value=order.ref_number or order.order_number) }}" target="_blank" class="btn btn-outline-primary btn-sm me-1" title="{{ T.items_print_barcode_title }}">
+              <i class="bi bi-upc-scan"></i>
+            </a>
+{% endif %}
+
+
+            <img id="barcode_{{ order.order_number }}" style="display:none; margin-top:10px;" width="150" />
+
+            {% if session['role'] == 'admin' %}
+              <a href="{{ url_for('edit_order', order_number=order.order_number) }}" class="btn btn-sm btn-warning me-1" title="{{ T.common_edit }}">
+                <i class="bi bi-pencil-square"></i>
+              </a>
+            {% endif %}
+
+            <form action="{{ url_for('delete_order_route', order_number=order.order_number) }}" method="post" onsubmit="return confirm({{ T.orders_confirm_delete | tojson }});" style="display:inline-block;">
+              <button type="submit" class="btn btn-sm btn-danger">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="11" class="text-center text-muted">{{ T.orders_none_found }}</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+const orders = {{ orders | tojson | safe }};
+const username = "{{ session['username']|e }}";
+
+const i18n = {
+  receiptPageTitle: {{ T.orders_receipt_page_title | tojson }},
+  dateLabel: {{ T.orders_date_label | tojson }},
+  productLabel: {{ T.orders_receipt_product_label | tojson }},
+  referenceLabel: {{ T.orders_receipt_reference_label | tojson }},
+  descriptionLabel: {{ T.orders_receipt_description_label | tojson }},
+  unitPriceLabel: {{ T.orders_receipt_unit_price_label | tojson }},
+  quantityLabel: {{ T.orders_receipt_quantity_label | tojson }},
+  totalLabel: {{ T.orders_receipt_total_label | tojson }},
+  ordererLabel: {{ T.orders_receipt_orderer_label | tojson }},
+  thanks: {{ T.orders_receipt_thanks | tojson }},
+  barcodePageTitle: {{ T.items_print_label_page_title | tojson }}
+};
+
+function printReceipt(index) {
+  const order = orders[index];
+  const totalPrice = (order.price * order.quantity).toFixed(2);
+
+  const receiptHTML = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>${i18n.receiptPageTitle}</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .header img { height: 60px; margin-right: 15px; }
+        .header { display: flex; align-items: center; }
+        .footer { font-size: 0.8em; text-align: right; }
+        table { width: 100%; font-size: 0.95em; }
+        td { padding: 4px 8px; }
+      </style>
+    </head>
+    <body onload="window.print()">
+      <div class="header">
+        <img src="${location.origin}/static/images/logo.png" alt="Logo">
+        <div>
+          <h3>Meine Firma</h3>
+          <p>Musterstraße 1, 12345 Musterstadt<br>Tel: 01234 567890 | info@meinefirma.de</p>
+        </div>
+      </div>
+      <hr>
+      <h4>${i18n.receiptPageTitle}</h4>
+      <table>
+        <tr><td><strong>${i18n.dateLabel}</strong></td><td>${order.date}</td></tr>
+        <tr><td><strong>${i18n.productLabel}</strong></td><td>${order.product_name}</td></tr>
+        <tr><td><strong>${i18n.referenceLabel}</strong></td><td>${order.ref_number}</td></tr>
+        <tr><td><strong>${i18n.descriptionLabel}</strong></td><td>${order.description || ''}</td></tr>
+        <tr><td><strong>${i18n.unitPriceLabel}</strong></td><td>${parseFloat(order.price).toFixed(2)} €</td></tr>
+        <tr><td><strong>${i18n.quantityLabel}</strong></td><td>${order.quantity}</td></tr>
+        <tr><td><strong>${i18n.totalLabel}</strong></td><td>${totalPrice} €</td></tr>
+        <tr><td><strong>${i18n.ordererLabel}</strong></td><td>${order.user || username}</td></tr>
+      </table>
+      <hr>
+      <p class="footer">${i18n.thanks}</p>
+    </body>
+    </html>`;
+    
+  const receiptWindow = window.open('', '_blank', 'width=800,height=600');
+  // Write receipt without parser-blocking document.write
+  receiptWindow?.document.write(receiptHTML);
+  receiptWindow?.document.close();
+}
+
+function printBarcode(barcode, productName, quantity) {
+  var url = location.origin + '/admin/items/barcode_label/' + encodeURIComponent(barcode);
+  window.open(url, '_blank');
+}
+
+</script>
+{% endblock %}

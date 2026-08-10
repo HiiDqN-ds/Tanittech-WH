@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="{{ site_lang }}" dir="{{ site_dir }}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>{{ T.platform_name }} — Assistent</title>
+
+  <!-- Installable-app metadata: this page IS the "extra app" that opens
+       directly into the chatbot. On a phone, "Add to Home Screen" (Android/
+       Chrome shows an automatic install prompt; iOS/Safari needs the manual
+       Share -> "Add to Home Screen" step) creates an icon that launches
+       straight here in its own standalone window, no browser chrome, no
+       dashboard/sidebar — chat only. -->
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+  <meta name="theme-color" content="#F6F7F2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="KassenPilot">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+  <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+        integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr"
+        crossorigin="anonymous">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <style>
+    /* =====================================================================
+       SOFT-LIGHT THEME — scoped to this page only
+       ---------------------------------------------------------------------
+       The rest of the app (dashboard, superadmin) keeps the dark "Noir"
+       theme defined in styles.css. This installable assistant app is a
+       separate product surface — often the *only* screen a shop ever
+       opens — so it gets its own calmer, daylight-friendly look: warm
+       off-white surfaces, soft diffused shadows instead of hard black
+       ones, and gentle 3D motion (the orb, the message bubbles, the
+       splash icons) for a bit of tactile life without being noisy.
+       Every component below is the same .assistant-* markup/JS already
+       used by the in-dashboard widget — only the tokens and a handful of
+       hardcoded-dark rules are overridden here.
+    ==================================================================== */
+    :root {
+      --paper: #F3F5EE;
+      --surface: #FFFFFF;
+      --surface-2: #F1F3EC;
+      --line: #E4E8DC;
+      --ink: #1C2016;
+      --ink-soft: #767C6B;
+      --brand-dark: #4C7A16;
+      --shadow-sm: 0 2px 8px rgba(40, 50, 20, 0.06);
+      --shadow-md: 0 20px 48px rgba(40, 50, 20, 0.12);
+      --shadow-glow: 0 10px 28px rgba(198, 255, 61, 0.35);
+    }
+    html, body { height: 100%; margin: 0; background: var(--paper); }
+    #assistantLauncher { display: none !important; }
+    #assistantPanel {
+      display: flex !important;
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      max-width: 100%; max-height: 100%;
+      border-radius: 0; border: none;
+      animation: none !important;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    #assistantClose { display: none !important; } /* nothing to close back to */
+
+    /* ---- Ambient depth: soft blurred color fields drifting slowly
+       behind the glass surfaces. This is what gives the "3D" sense of
+       depth on a flat light theme — content floats above a soft haze
+       instead of sitting on a single flat color. ---- */
+    .assistant-ambient { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+    .assistant-ambient span {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.55;
+      animation: ambient-drift 22s ease-in-out infinite;
+    }
+    .assistant-ambient span:nth-child(1) { width: 46vw; height: 46vw; top: -14vw; left: -12vw; background: radial-gradient(circle, rgba(198,255,61,0.55), transparent 70%); }
+    .assistant-ambient span:nth-child(2) { width: 40vw; height: 40vw; bottom: -16vw; right: -10vw; background: radial-gradient(circle, rgba(245,185,61,0.35), transparent 70%); animation-delay: -8s; animation-duration: 26s; }
+    .assistant-ambient span:nth-child(3) { width: 30vw; height: 30vw; top: 40%; left: 60%; background: radial-gradient(circle, rgba(198,255,61,0.25), transparent 70%); animation-delay: -14s; animation-duration: 19s; }
+    @keyframes ambient-drift {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33%      { transform: translate(3vw, 4vw) scale(1.08); }
+      66%      { transform: translate(-2vw, -3vw) scale(0.96); }
+    }
+
+    /* ---- Header: soft frosted glass instead of a hardcoded black bar ---- */
+    .assistant-header.assistant-header-glass {
+      position: relative; z-index: 2;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--ink);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 2px 20px rgba(40, 50, 20, 0.06);
+    }
+    .assistant-header .subtitle { color: var(--ink-soft); opacity: 1; }
+    .assistant-header button, .assistant-back-btn {
+      background: var(--surface-2);
+      color: var(--ink);
+      box-shadow: 0 2px 6px rgba(40,50,20,0.06);
+    }
+    .assistant-header button:hover, .assistant-back-btn:hover { background: var(--brand-soft); color: var(--brand-dark); }
+    .assistant-lang-chip { background: var(--surface-2); color: var(--ink); }
+    .assistant-lang-chip:hover { background: var(--brand-soft); transform: scale(1.08) translateZ(4px); }
+    .assistant-lang-chip.active { border-color: var(--brand); background: var(--brand-soft); }
+
+    /* ---- Body & bubbles: same layout, soft-light surfaces + a touch more
+       3D pop on arrival (a slight rotateX tilt-in, settling flat) ---- */
+    .assistant-body { position: relative; z-index: 1; background: transparent; }
+    .assistant-msg {
+      box-shadow: var(--shadow-sm);
+      animation: assistant-msg-in-3d 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+      transform-style: preserve-3d;
+    }
+    @keyframes assistant-msg-in-3d {
+      from { opacity: 0; transform: translateY(10px) translateZ(-18px) rotateX(8deg) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) translateZ(0) rotateX(0deg) scale(1); }
+    }
+    .assistant-msg.user { box-shadow: 0 10px 22px rgba(198, 255, 61, 0.28); }
+
+    .assistant-inputbar { background: rgba(255,255,255,0.8); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+    .assistant-text-input { background: #fff; }
+    .assistant-mic-btn, .assistant-send-btn {
+      background: var(--surface); color: var(--brand-dark);
+      box-shadow: 0 3px 10px rgba(40,50,20,0.08);
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.15s ease;
+    }
+    .assistant-mic-btn:active, .assistant-send-btn:active {
+      transform: scale(0.92) translateZ(-4px);
+      box-shadow: 0 1px 4px rgba(40,50,20,0.14) inset;
+    }
+    .assistant-send-btn { box-shadow: var(--shadow-glow); }
+
+    /* ---- Splash: dark, confident hero — matches the product-deck
+       positioning ("Run the shop by talking to it") rather than a soft
+       generic onboarding card. Deliberately NOT the soft-light theme
+       used for the chat itself — this is the one screen that should
+       feel like a serious operator tool, not a friendly helper. ---- */
+    .assistant-splash {
+      background:
+        radial-gradient(circle at 88% 14%, rgba(53, 71, 122, 0.55), transparent 42%),
+        radial-gradient(circle at 92% 86%, rgba(53, 71, 122, 0.5), transparent 40%),
+        #0B1220;
+      color: #fff;
+      text-align: left;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2.4rem 2rem;
+      gap: 1.4rem;
+    }
+    .assistant-splash-eyebrow {
+      font-family: var(--font-display); font-weight: 700; letter-spacing: 0.16em;
+      font-size: 0.72rem; color: var(--brand); text-transform: uppercase;
+    }
+    .assistant-splash h1 {
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: 700; font-size: 2.1rem; line-height: 1.12; margin: 0;
+      max-width: 480px; color: #fff;
+    }
+    .assistant-splash p { color: rgba(255,255,255,0.72); opacity: 1; max-width: 380px; text-align: left; font-size: 0.92rem; }
+    .assistant-splash-orb { display: none; } /* the headline carries the moment now, not the mascot */
+    .assistant-splash-capabilities { display: flex; flex-direction: column; gap: 0.55rem; width: 100%; max-width: 420px; }
+    .assistant-splash-cap {
+      display: flex; align-items: center; gap: 0.7rem;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 12px; padding: 0.6rem 0.8rem;
+      font-size: 0.82rem; color: rgba(255,255,255,0.85);
+      transform-style: preserve-3d;
+      animation: cap-in 0.5s cubic-bezier(.2,1,.4,1) both;
+    }
+    .assistant-splash-cap:nth-child(2) { animation-delay: 0.08s; }
+    .assistant-splash-cap:nth-child(3) { animation-delay: 0.16s; }
+    .assistant-splash-cap:nth-child(4) { animation-delay: 0.24s; }
+    @keyframes cap-in { from { opacity: 0; transform: translateX(-14px) rotateY(-10deg); } to { opacity: 1; transform: translateX(0) rotateY(0); } }
+    .assistant-splash-cap b { color: var(--brand); font-weight: 700; }
+    .assistant-splash-lang { justify-content: flex-start; }
+    .assistant-splash-lang button {
+      border-color: rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.06);
+      color: #fff;
+    }
+    .assistant-splash-lang button:hover { background: rgba(255,255,255,0.14); }
+    .assistant-splash-lang button.active { background: var(--brand); color: var(--on-brand); border-color: var(--brand); }
+    .assistant-splash-start {
+      background: var(--brand); color: var(--on-brand);
+      box-shadow: 0 14px 30px rgba(198,255,61,0.28);
+    }
+    .assistant-splash-skip { color: rgba(255,255,255,0.55); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .assistant-ambient span { animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="assistant-ambient" aria-hidden="true"><span></span><span></span><span></span></div>
+
+<!-- ================= SPLASH / ONBOARDING SCREEN =================
+     This is what a person sees FIRST when they open the installed
+     app — a real app shell, not a bare chat box. It shows the 3D
+     avatar, a one-line pitch, quick language choice and a Start
+     button. It is skipped automatically on the 2nd+ open (see
+     assistantSplashSkip logic below), so it never gets in the way
+     of a returning user. -->
+<div class="assistant-splash" id="assistantSplash">
+  <div class="assistant-splash-eyebrow">KASSENPILOT</div>
+  <h1 id="splashTitle">Run the shop by talking to it.</h1>
+  <p id="splashSubtitle">Not just answers — it places orders, prints barcodes, reconciles the till, and pays staff. In whatever language you speak.</p>
+
+  <div class="assistant-splash-capabilities">
+    <div class="assistant-splash-cap">🧾 <span><b>"Sell 2 coffees to Ahmed, cash"</b> — recorded, stock updated.</span></div>
+    <div class="assistant-splash-cap">📦 <span><b>"Order 50 more croissants"</b> — purchase logged instantly.</span></div>
+    <div class="assistant-splash-cap">💶 <span><b>"Pay Wissam €300"</b> — salary paid, till reconciled.</span></div>
+    <div class="assistant-splash-cap">🌍 <span>Deutsch, English, أو العربية — by text or voice.</span></div>
+  </div>
+
+  <div class="assistant-splash-lang" id="splashLangSwitch">
+    <button type="button" data-lang="de">🇩🇪 Deutsch</button>
+    <button type="button" data-lang="en">🇬🇧 English</button>
+    <button type="button" data-lang="ar">🇸🇦 العربية</button>
+  </div>
+
+  <button class="assistant-splash-start" id="assistantSplashStart">Los geht's →</button>
+  <button class="assistant-splash-skip" id="assistantSplashSkip">Nicht mehr anzeigen</button>
+</div>
+
+<button id="assistantLauncher" aria-label="open"><img src="{{ url_for('static', filename='images/logo.png') }}" alt="" class="assistant-logo-orb"></button>
+
+<div class="assistant-panel" id="assistantPanel" dir="ltr" data-site-lang="{{ site_lang }}">
+  <div class="assistant-header assistant-header-glass">
+    <button id="assistantBack" class="assistant-back-btn" aria-label="Back" style="display:none;">
+      <i class="bi bi-arrow-left"></i>
+    </button>
+    <div class="title">
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="" class="assistant-orb assistant-logo-orb">
+      <div class="title-block">
+        <span id="assistantTitle">Assistent</span>
+        <span class="subtitle">{{ T.platform_name }}</span>
+      </div>
+    </div>
+    <div class="assistant-lang-switch" id="headerLangSwitch">
+      <button type="button" class="assistant-lang-chip" data-lang="de" title="Deutsch">🇩🇪</button>
+      <button type="button" class="assistant-lang-chip" data-lang="en" title="English">🇬🇧</button>
+      <button type="button" class="assistant-lang-chip" data-lang="ar" title="العربية">🇸🇦</button>
+    </div>
+    <button id="assistantNewChatBtn" class="assistant-icon-btn" aria-label="New chat" title="New chat"><i class="bi bi-plus-lg"></i></button>
+    <button id="assistantHistoryBtn" class="assistant-icon-btn" aria-label="History" title="History"><i class="bi bi-clock-history"></i></button>
+    <button id="assistantClose" aria-label="Schließen" style="display:none;"><i class="bi bi-x-lg"></i></button>
+  </div>
+  <div class="assistant-body" id="assistantBody"></div>
+  <form class="assistant-inputbar" id="assistantInputForm" autocomplete="off">
+    <button type="button" class="assistant-mic-btn" id="assistantMicBtn" aria-label="Voice input">
+      <i class="bi bi-mic-fill"></i>
+    </button>
+    <input type="text" id="assistantTextInput" class="assistant-text-input" placeholder="…" inputmode="text">
+    <button type="submit" class="assistant-send-btn" aria-label="Send"><i class="bi bi-send-fill"></i></button>
+  </form>
+</div>
+
+<script>
+  // assistant.js requires a launcher element to exist (it wires a click
+  // handler to it) and opens the panel only once that's "clicked". Since
+  // this page has no dashboard to return to, we auto-open the chat behind
+  // the splash so it's instantly ready the moment the splash is dismissed.
+  window.ASSISTANT_STORAGE_KEY = 'ria_assistant_state_chatapp_v1';
+  // Same reasoning as base.html: the widget's menu must match what
+  // seller_allowed_tools() actually permits server-side.
+  window.ASSISTANT_ROLE = {{ session.get('role', 'seller') | tojson }};
+  window.ASSISTANT_PERMS = {{ seller_categories | list | tojson }};
+  window.ASSISTANT_CAN_KASSE = {{ can_kasse | tojson }};
+  window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('assistantLauncher')?.click();
+  });
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register("{{ url_for('static', filename='js/chat-app-sw.js') }}").catch(() => {});
+    });
+  }
+
+  // ---------------- Splash screen logic ----------------
+  (function () {
+    var SPLASH_SKIP_KEY = 'ria_assistant_splash_skip_v1';
+    var splash = document.getElementById('assistantSplash');
+    var startBtn = document.getElementById('assistantSplashStart');
+    var skipBtn = document.getElementById('assistantSplashSkip');
+    var splashLangSwitch = document.getElementById('splashLangSwitch');
+    var headerLangSwitch = document.getElementById('headerLangSwitch');
+
+    var SPLASH_TEXT = {
+      de: { title: 'Führe den Laden, indem du mit ihm sprichst.', subtitle: 'Nicht nur Antworten — er bestellt, druckt Barcodes, gleicht die Kasse ab und zahlt Gehälter. In jeder Sprache.', start: "Los geht's →", skip: 'Nicht mehr anzeigen' },
+      en: { title: 'Run the shop by talking to it.', subtitle: "Not just answers — it places orders, prints barcodes, reconciles the till, and pays staff. In whatever language you speak.", start: 'Get started →', skip: "Don't show again" },
+      ar: { title: 'أدر متجرك بالحديث معه.', subtitle: 'ليس مجرد إجابات — بل يسجّل الطلبات، ويطبع الباركود، ويطابق الصندوق، ويدفع الرواتب. بأي لغة تتحدثها.', start: 'ابدأ ←', skip: 'عدم الإظهار مجددًا' }
+    };
+
+    function applySplashLang(lang) {
+      var t = SPLASH_TEXT[lang] || SPLASH_TEXT.de;
+      document.getElementById('splashTitle').textContent = t.title;
+      document.getElementById('splashSubtitle').textContent = t.subtitle;
+      startBtn.textContent = t.start;
+      skipBtn.textContent = t.skip;
+      [splashLangSwitch, headerLangSwitch].forEach(function (group) {
+        if (!group) return;
+        group.querySelectorAll('[data-lang]').forEach(function (btn) {
+          btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+        });
+      });
+      try { localStorage.setItem('assistantLang', lang); } catch (e) {}
+    }
+
+    var startLang = (localStorage.getItem('assistantLang')) || "{{ site_lang }}" || 'de';
+    applySplashLang(startLang);
+
+    [splashLangSwitch, headerLangSwitch].forEach(function (group) {
+      if (!group) return;
+      group.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-lang]');
+        if (!btn) return;
+        applySplashLang(btn.getAttribute('data-lang'));
+      });
+    });
+
+    function hideSplash() {
+      splash.classList.add('hide');
+      setTimeout(function () { splash.style.display = 'none'; }, 350);
+    }
+
+    startBtn.addEventListener('click', hideSplash);
+    skipBtn.addEventListener('click', function () {
+      try { localStorage.setItem(SPLASH_SKIP_KEY, '1'); } catch (e) {}
+      hideSplash();
+    });
+
+    try {
+      if (localStorage.getItem(SPLASH_SKIP_KEY) === '1') {
+        splash.style.display = 'none';
+      }
+    } catch (e) {}
+  })();
+
+  // Header chips reload with the new chat language, same as the splash
+  // screen choice — keeps a single source of truth (localStorage.assistantLang).
+  (function () {
+    var group = document.getElementById('headerLangSwitch');
+    if (!group) return;
+    group.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-lang]');
+      if (!btn) return;
+      var lang = btn.getAttribute('data-lang');
+      if (lang === (localStorage.getItem('assistantLang') || '')) return;
+      localStorage.setItem('assistantLang', lang);
+      location.reload();
+    });
+  })();
+</script>
+{% if stripe_terminal.configured %}
+<script src="https://js.stripe.com/terminal/v1/"></script>
+<script src="{{ url_for('static', filename='js/stripe-terminal.js') }}"></script>
+<script>window.STRIPE_TERMINAL_CONFIG = {{ stripe_terminal | tojson }};</script>
+{% endif %}
+<script src="{{ url_for('static', filename='js/assistant.js') }}"></script>
+</body>
+</html>

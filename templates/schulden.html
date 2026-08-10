@@ -1,0 +1,746 @@
+{% extends "base.html" %}
+{% block title %}{{ T.debts_management_title }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+
+  <h2>{{ T.debts_management_title }}</h2>
+  <div class="mb-3">
+    <h5>{{ T.clients_total_unpaid_label }}: <span class="text-danger">€{{ '%.2f'|format(unpaid_total or 0) }}</span></h5>
+  </div>
+
+  <button type="button" class="btn btn-primary mb-4" data-bs-toggle="modal" data-bs-target="#addDebtModal" aria-label="{{ T.debts_add_new }}">
+    {{ T.debts_add_new }}
+  </button>
+
+  <form method="POST" action="{{ url_for('delete_all_debts_route') }}" class="d-inline"
+        onsubmit="return confirm({{ T.debts_confirm_delete_all | tojson }});">
+    <button type="submit" class="btn btn-outline-danger mb-4 ms-2">
+      <i class="bi bi-trash"></i> {{ T.debts_delete_all }}
+    </button>
+  </form>
+ 
+
+  <!-- Add Debt Modal -->
+<div class="modal fade" id="addDebtModal" tabindex="-1" aria-labelledby="addDebtModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"> <!-- add this class -->
+    <form method="POST" action="{{ url_for('add_debt_route') }}" novalidate>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addDebtModalLabel">{{ T.debts_add_new }}</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="{{ T.clients_modal_close_aria }}"></button>
+        </div>
+        <div class="modal-body">
+          <input name="client_name" type="text" class="form-control mb-3" placeholder="{{ T.debts_client_name_placeholder }}" required aria-required="true" autofocus>
+          <input name="description" type="text" class="form-control mb-3" placeholder="{{ T.common_description }}" required aria-required="true">
+          <input name="amount" type="number" class="form-control mb-3" placeholder="{{ T.clients_amount_label }}" min="0.01" step="0.01" required aria-required="true">
+          <input name="phone" type="tel" class="form-control mb-3" placeholder="{{ T.clients_phone_number }}" required aria-required="true" pattern="[+0-9\s\-]+" title="{{ T.debts_phone_pattern_title }}">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ T.common_cancel }}</button>
+          <button type="submit" class="btn btn-primary">{{ T.common_add }}</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
+  <!-- Search: submits to the server (search_debt_clients() in db.py —
+       matches client name, phone, or debt description) so results aren't
+       limited to whatever debtors are already loaded on screen. -->
+  <form method="get" class="mb-3" id="debtSearchForm">
+    <div class="input-group">
+      <span class="input-group-text"><i class="bi bi-search"></i></span>
+      <input type="text" name="q" class="form-control" placeholder="{{ T.debts_search_placeholder }}"
+             value="{{ search_query or '' }}" autocomplete="off">
+      {% if search_query %}
+      <a href="{{ url_for('schulden') }}" class="btn btn-outline-secondary" title="{{ T.common_cancel }}">
+        <i class="bi bi-x-lg"></i>
+      </a>
+      {% endif %}
+    </div>
+  </form>
+
+  <table class="table table-bordered data-table" id="debtTable"
+         data-search-placeholder="{{ T.debts_search_placeholder }}">
+    <thead class="table-light">
+      <tr>
+        <th scope="col">#</th>
+        <th scope="col">{{ T.common_name }}</th>
+        <th scope="col">{{ T.debts_created_header }}</th>
+        <th scope="col">{{ T.debts_total_debts_header }}</th>
+        <th scope="col">{{ T.common_status }}</th>
+        <th scope="col" data-no-sort>{{ T.common_actions }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for client in clients %}
+      <tr>
+        <th scope="row">{{ loop.index }}</th>
+        <td>{{ client.client_name }}</td>
+        <td>{{ client.first_created.strftime('%Y-%m-%d') if client.first_created else '-' }}</td>
+        <td>{{ '%.2f'|format(client.total_unpaid or 0) }}</td>
+        <td>
+          {% if client.total_unpaid == 0 %}
+            <span class="badge bg-success">{{ T.clients_status_paid }}</span>
+          {% else %}
+            <span class="badge bg-danger">{{ T.dash_open_label }}</span>
+          {% endif %}
+        </td>
+        <td>
+          <button 
+            type="button"
+            class="btn btn-primary btn-sm client-link"
+            data-client="{{ client.client_name }}"
+            aria-label="{{ T.debts_details_aria_prefix }} {{ client.client_name }}">
+            <i class="bi bi-info-circle"></i>
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm rename-client-btn"
+            data-client="{{ client.client_name }}"
+            aria-label="{{ T.common_edit }}">
+            <i class="bi bi-pencil"></i>
+          </button>
+
+          {% if client.total_unpaid == 0 %}
+          <form method="POST" action="{{ url_for('delete_client') }}" class="d-inline" onsubmit="return confirm({{ T.debts_confirm_delete_client | tojson }});" aria-label="{{ T.debts_delete_client_aria }}">
+            <input type="hidden" name="client_name" value="{{ client.client_name }}">
+            <button type="submit" class="btn btn-danger btn-sm" aria-label="{{ T.common_delete }}">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</div>
+
+<!-- Debt Details Modal (cards) -->
+<div class="modal fade" id="debtDetailsModal" tabindex="-1" aria-labelledby="debtDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white" id="debtDetailsModalLabel">{{ T.debts_details_title }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="{{ T.clients_modal_close_aria }}"></button>
+      </div>
+      <div class="modal-body">
+        <div id="debtsCardsContainer" class="d-flex flex-column gap-3">
+          <!-- Debt cards inserted here -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Debt Modal -->
+<div class="modal fade" id="editDebtModal" tabindex="-1" aria-labelledby="editDebtModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"> <!-- This class vertically centers the dialog -->
+    <form method="POST" id="editDebtForm" novalidate>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editDebtModalLabel">{{ T.debts_edit_title }}</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="{{ T.clients_modal_close_aria }}"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="debt_id" id="editDebtId" />
+          <input type="text" name="name" id="editClientName" class="form-control mb-3" placeholder="{{ T.debts_client_name_placeholder }}" required aria-required="true">
+          <input type="text" name="description" id="editDescription" class="form-control mb-3" placeholder="{{ T.common_description }}" required aria-required="true">
+          <input type="number" name="amount" id="editAmount" class="form-control mb-3" placeholder="{{ T.clients_amount_label }}" min="0.01" step="0.01" required aria-required="true">
+          <input type="tel" name="phone" id="editPhone" class="form-control mb-3" placeholder="{{ T.clients_phone_number }}" required aria-required="true" pattern="[+0-9\s\-]+" title="{{ T.debts_phone_pattern_title }}">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ T.common_cancel }}</button>
+          <button type="submit" class="btn btn-primary">{{ T.common_save }}</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Mark Paid Modal (full settlement — payment method still required) -->
+<div class="modal fade" id="markPaidModal" tabindex="-1" aria-labelledby="markPaidModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header text-white" style="background-color: #198754;">
+        <h5 class="modal-title" id="markPaidModalLabel">{{ T.debts_redeem_debt_title }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="{{ T.clients_modal_close_aria }}"></button>
+      </div>
+      <div class="modal-body">
+        <p id="markPaidAmountLine" class="mb-3"></p>
+        <label class="form-label d-block">{{ T.debts_payment_method_label }}</label>
+        <div class="btn-group w-100" role="group" aria-label="{{ T.debts_payment_method_label }}">
+          <input type="radio" class="btn-check" name="markPaidMethod" id="markPaidCash" value="cash" checked>
+          <label class="btn btn-outline-success" for="markPaidCash"><i class="bi bi-cash-coin"></i> {{ T.debts_payment_method_cash }}</label>
+          <input type="radio" class="btn-check" name="markPaidMethod" id="markPaidCard" value="card" {% if not stripe_terminal.configured %}disabled{% endif %}>
+          <label class="btn btn-outline-success" for="markPaidCard"><i class="bi bi-credit-card"></i> {{ T.debts_payment_method_card }}</label>
+        </div>
+        {% if not stripe_terminal.configured %}
+        <div class="form-text">{{ T.stripe_not_configured }}</div>
+        {% endif %}
+        <div id="markPaidCardStatus" class="alert alert-info d-none mt-3 mb-0" role="status"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ T.common_cancel }}</button>
+        <button type="button" class="btn btn-success" id="confirmMarkPaidBtn">{{ T.debts_redeem_debt_title }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Record Payment Modal (partial or full, explicit amount) -->
+<div class="modal fade" id="recordPaymentModal" tabindex="-1" aria-labelledby="recordPaymentModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="recordPaymentModalLabel">{{ T.debts_record_payment_title }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="{{ T.clients_modal_close_aria }}"></button>
+      </div>
+      <div class="modal-body">
+        <p id="recordPaymentRemainingLine" class="mb-3"></p>
+        <label class="form-label" for="recordPaymentAmount">{{ T.debts_payment_amount_label }}</label>
+        <input type="number" id="recordPaymentAmount" class="form-control mb-3" min="0.01" step="0.01" required>
+        <label class="form-label d-block">{{ T.debts_payment_method_label }}</label>
+        <div class="btn-group w-100" role="group" aria-label="{{ T.debts_payment_method_label }}">
+          <input type="radio" class="btn-check" name="recordPaymentMethod" id="recordPaymentCash" value="cash" checked>
+          <label class="btn btn-outline-primary" for="recordPaymentCash"><i class="bi bi-cash-coin"></i> {{ T.debts_payment_method_cash }}</label>
+          <input type="radio" class="btn-check" name="recordPaymentMethod" id="recordPaymentCard" value="card" {% if not stripe_terminal.configured %}disabled{% endif %}>
+          <label class="btn btn-outline-primary" for="recordPaymentCard"><i class="bi bi-credit-card"></i> {{ T.debts_payment_method_card }}</label>
+        </div>
+        {% if not stripe_terminal.configured %}
+        <div class="form-text">{{ T.stripe_not_configured }}</div>
+        {% endif %}
+        <div id="recordPaymentError" class="text-danger mt-2 small" style="display:none;"></div>
+        <div id="recordPaymentCardStatus" class="alert alert-info d-none mt-2 mb-0" role="status"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ T.common_cancel }}</button>
+        <button type="button" class="btn btn-primary" id="confirmRecordPaymentBtn">{{ T.debts_record_payment_submit }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payment History Modal -->
+<div class="modal fade" id="paymentHistoryModal" tabindex="-1" aria-labelledby="paymentHistoryModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="paymentHistoryModalLabel">{{ T.debts_payment_history_title }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="{{ T.clients_modal_close_aria }}"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-sm table-bordered align-middle data-table">
+          <thead class="table-light">
+            <tr>
+              <th>{{ T.debts_payment_history_date }}</th>
+              <th>{{ T.debts_payment_amount_label }}</th>
+              <th>{{ T.debts_payment_method_label }}</th>
+              <th>{{ T.debts_payment_history_by }}</th>
+              <th>{{ T.common_actions }}</th>
+            </tr>
+          </thead>
+          <tbody id="paymentHistoryBody">
+            <!-- Loaded dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if stripe_terminal.configured %}
+<script src="https://js.stripe.com/terminal/v1/"></script>
+<script src="{{ url_for('static', filename='js/stripe-terminal.js') }}"></script>
+{% endif %}
+
+<script>
+  const i18n = {
+    loading: {{ T.debts_loading | tojson }},
+    networkError: {{ T.debts_network_error | tojson }},
+    noDebtsFound: {{ T.clients_no_debts_found | tojson }},
+    paid: {{ T.clients_status_paid | tojson }},
+    open: {{ T.dash_open_label | tojson }},
+    redeemTitle: {{ T.debts_redeem_debt_title | tojson }},
+    redeemLabel: {{ T.clients_redeem_title | tojson }},
+    amountColon: {{ T.debts_amount_colon | tojson }},
+    remainingColon: {{ T.debts_remaining_colon | tojson }},
+    phoneColon: {{ T.debts_phone_colon | tojson }},
+    createdColon: {{ T.debts_created_colon | tojson }},
+    editTitle: {{ T.common_edit | tojson }},
+    loadError: {{ T.clients_load_error | tojson }},
+    confirmMarkPaid: {{ T.debts_confirm_mark_paid | tojson }},
+    redeemError: {{ T.debts_redeem_error | tojson }},
+    recordPaymentLabel: {{ T.debts_record_payment_title | tojson }},
+    historyLabel: {{ T.debts_payment_history_title | tojson }},
+    payingAmount: {{ T.debts_paying_amount_label | tojson }},
+    remainingBalance: {{ T.debts_remaining_balance_label | tojson }},
+    genericError: {{ T.debts_generic_payment_error | tojson }},
+    editPayment: {{ T.debts_edit_payment_title | tojson }},
+    deletePayment: {{ T.debts_delete_payment_title | tojson }},
+    confirmDeletePayment: {{ T.debts_confirm_delete_payment | tojson }},
+    save: {{ T.common_save | tojson }},
+    noPayments: {{ T.debts_no_payments_yet | tojson }},
+    systemBackfill: {{ T.debts_system_backfill_label | tojson }},
+    cash: {{ T.debts_payment_method_cash | tojson }},
+    card: {{ T.debts_payment_method_card | tojson }},
+    cardReaderDiscovering: {{ T.stripe_status_reader_discovering | tojson }},
+    cardReaderConnecting: {{ T.stripe_status_reader_connecting | tojson }},
+    cardCreatingIntent: {{ T.stripe_status_creating_intent | tojson }},
+    cardPresentCard: {{ T.stripe_status_present_card | tojson }},
+    cardProcessing: {{ T.stripe_status_processing | tojson }},
+    cardErrorPrefix: {{ T.stripe_status_error_prefix | tojson }},
+    cardNotConfigured: {{ T.stripe_not_configured | tojson }},
+    renamePrompt: {{ T.debts_rename_client_prompt | tojson }}
+  };
+
+  window.STRIPE_TERMINAL_CONFIG = {{ stripe_terminal | tojson }};
+
+  const stripeStatusLabels = {
+    reader_discovering: i18n.cardReaderDiscovering,
+    reader_connecting: i18n.cardReaderConnecting,
+    creating_intent: i18n.cardCreatingIntent,
+    present_card: i18n.cardPresentCard,
+    processing: i18n.cardProcessing,
+  };
+
+  function setDebtCardStatus(elId, text, isError) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    if (!text) {
+      el.classList.add('d-none');
+      el.textContent = '';
+      return;
+    }
+    el.classList.remove('d-none', 'alert-info', 'alert-danger');
+    el.classList.add(isError ? 'alert-danger' : 'alert-info');
+    el.textContent = text;
+  }
+
+  // ======= EDIT DEBT MODAL POPULATION =======
+  document.addEventListener('click', function(e) {
+    const editBtn = e.target.closest('.edit-debt-btn');
+    if (editBtn) {
+      const debtId = editBtn.dataset.debtId;
+      const name = editBtn.dataset.clientName;
+      const description = editBtn.dataset.description;
+      const amount = editBtn.dataset.amount;
+      const phone = editBtn.dataset.phone;
+
+      document.getElementById('editDebtId').value = debtId;
+      document.getElementById('editClientName').value = name;
+      document.getElementById('editDescription').value = description;
+      document.getElementById('editAmount').value = amount;
+      document.getElementById('editPhone').value = phone;
+
+      document.getElementById('editDebtForm').action = `/schulden/edit/${debtId}`;
+
+      const editModal = new bootstrap.Modal(document.getElementById('editDebtModal'));
+      editModal.show();
+    }
+  });
+
+  // ======= LOAD CLIENT DEBTS AND RENDER CARDS =======
+  document.addEventListener('DOMContentLoaded', () => {
+    const debtDetailsModal = new bootstrap.Modal(document.getElementById('debtDetailsModal'));
+    const container = document.getElementById('debtsCardsContainer');
+    let currentClientNameForRefresh = null;
+    // Re-clicking the client-link only re-renders the cards *inside* the
+    // modal — it never touches the client table row (remaining total,
+    // paid/open badge) or the "total unpaid" header behind it, so those
+    // stayed stale after einlösen/payment/edit/delete. A full reload picks
+    // up everything (it's server-rendered), and we remember which client
+    // was open so the modal auto-reopens with fresh data once the page
+    // comes back — the refresh happens automatically, no manual reload.
+    function refreshCurrentClient() {
+      if (currentClientNameForRefresh) {
+        sessionStorage.setItem('schulden_reopen_client', currentClientNameForRefresh);
+      }
+      location.reload();
+    }
+
+    const pendingReopenClient = sessionStorage.getItem('schulden_reopen_client');
+    if (pendingReopenClient) {
+      sessionStorage.removeItem('schulden_reopen_client');
+      document.querySelector(`.client-link[data-client="${CSS.escape(pendingReopenClient)}"]`)?.click();
+    }
+
+    document.querySelectorAll('.rename-client-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const oldName = button.getAttribute('data-client');
+        const newName = (prompt(i18n.renamePrompt || 'New client name:', oldName) || '').trim();
+        if (!newName || newName === oldName) return;
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{{ url_for('rename_client') }}";
+        form.innerHTML = `
+          <input type="hidden" name="old_client_name" value="${oldName.replace(/"/g, '&quot;')}">
+          <input type="hidden" name="new_client_name" value="${newName.replace(/"/g, '&quot;')}">
+        `;
+        document.body.appendChild(form);
+        form.submit();
+      });
+    });
+
+    document.querySelectorAll('.client-link').forEach(button => {
+      button.addEventListener('click', () => {
+        const clientName = button.getAttribute('data-client');
+        currentClientNameForRefresh = clientName;
+
+        container.innerHTML = `<p class="text-center text-muted">${i18n.loading}</p>`;
+        debtDetailsModal.show();
+
+        fetch(`/clients/${encodeURIComponent(clientName)}/debts`)
+          .then(response => {
+            if (!response.ok) throw new Error(i18n.networkError);
+            return response.json();
+          })
+          .then(debts => {
+            container.innerHTML = '';
+
+            if (debts.length === 0) {
+              container.innerHTML = `<p class="text-center text-muted">${i18n.noDebtsFound}</p>`;
+              return;
+            }
+
+            debts.forEach(debt => {
+              const paidBadge = debt.paid
+                ? `<span class="badge bg-success">${i18n.paid}</span>`
+                : `<span class="badge bg-danger">${i18n.open}</span>`;
+
+              const original = debt.original_amount != null ? parseFloat(debt.original_amount) : parseFloat(debt.amount);
+              const remaining = parseFloat(debt.amount);
+              const amountLine = debt.paid
+                ? `<p class="mb-1"><strong>${i18n.amountColon}</strong> €${original.toFixed(2)} <span class="text-success">(${i18n.paid})</span></p>`
+                : `<p class="mb-1"><strong>${i18n.amountColon}</strong> €${original.toFixed(2)} &nbsp; <strong>${i18n.remainingColon}</strong> €${remaining.toFixed(2)}</p>`;
+
+              const redeemBtn = !debt.paid ? `
+                <button type="button" class="btn btn-success btn-sm me-2 redeem-debt-btn" data-debt-id="${debt.debt_id}" data-client-name="${debt.client_name}" data-remaining="${remaining}" title="${i18n.redeemTitle}">
+                  <i class="bi bi-check2-circle"></i> ${i18n.redeemLabel}
+                </button>` : '';
+
+              const recordPaymentBtn = !debt.paid ? `
+                <button type="button" class="btn btn-outline-primary btn-sm me-2 record-payment-btn" data-debt-id="${debt.debt_id}" data-client-name="${debt.client_name}" data-remaining="${remaining}" title="${i18n.recordPaymentLabel}">
+                  <i class="bi bi-cash-stack"></i> ${i18n.recordPaymentLabel}
+                </button>` : '';
+
+              const historyBtn = `
+                <button type="button" class="btn btn-outline-secondary btn-sm me-2 payment-history-btn" data-debt-id="${debt.debt_id}" title="${i18n.historyLabel}">
+                  <i class="bi bi-clock-history"></i>
+                </button>`;
+
+              const card = `
+                <div class="card shadow-sm">
+                  <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+                    <div class="flex-grow-1">
+                      <h6 class="card-title mb-1">${debt.description}</h6>
+                      ${amountLine}
+                      <p class="mb-1"><strong>${i18n.phoneColon}</strong> ${debt.phone_number}</p>
+                      <p class="mb-0">${paidBadge} &nbsp; <small class="text-muted">${i18n.createdColon} ${debt.created_at || '-'}</small></p>
+                    </div>
+                    <div class="mt-3 mt-md-0 d-flex flex-wrap gap-2">
+                      ${redeemBtn}
+                      ${recordPaymentBtn}
+                      ${historyBtn}
+                      <button type="button" class="btn btn-warning btn-sm edit-debt-btn" 
+                        data-debt-id="${debt.debt_id}"
+                        data-client-name="${debt.client_name}"
+                        data-description="${debt.description}"
+                        data-amount="${debt.amount}"
+                        data-phone="${debt.phone_number}" 
+                        title="${i18n.editTitle}">
+                        <i class="bi bi-pencil"></i> 
+                      </button>
+                      
+                    </div>
+                  </div>
+                </div>
+              `;
+              container.insertAdjacentHTML('beforeend', card);
+            });
+          })
+          .catch(() => {
+            container.innerHTML = `<p class="text-danger text-center">${i18n.loadError}</p>`;
+          });
+      });
+    });
+
+    // ======= MARK PAID / RECORD PAYMENT / PAYMENT HISTORY (delegated) =======
+    const markPaidModalEl = document.getElementById('markPaidModal');
+    const markPaidModal = new bootstrap.Modal(markPaidModalEl);
+    const recordPaymentModalEl = document.getElementById('recordPaymentModal');
+    const recordPaymentModal = new bootstrap.Modal(recordPaymentModalEl);
+    const paymentHistoryModalEl = document.getElementById('paymentHistoryModal');
+    const paymentHistoryModal = new bootstrap.Modal(paymentHistoryModalEl);
+
+    container.addEventListener('click', e => {
+      // --- Mark Paid: open method-choice modal instead of a plain confirm() ---
+      const redeemBtn = e.target.closest('.redeem-debt-btn');
+      if (redeemBtn) {
+        markPaidModalEl.dataset.debtId = redeemBtn.getAttribute('data-debt-id');
+        const remaining = parseFloat(redeemBtn.getAttribute('data-remaining') || '0');
+        markPaidModalEl.dataset.remaining = remaining;
+        document.getElementById('markPaidAmountLine').textContent = `${i18n.payingAmount}: €${remaining.toFixed(2)}`;
+        document.getElementById('markPaidCash').checked = true;
+        setDebtCardStatus('markPaidCardStatus', '', false);
+        document.getElementById('confirmMarkPaidBtn').disabled = false;
+        markPaidModal.show();
+        return;
+      }
+
+      // --- Record Payment: open amount+method modal ---
+      const recordBtn = e.target.closest('.record-payment-btn');
+      if (recordBtn) {
+        recordPaymentModalEl.dataset.debtId = recordBtn.getAttribute('data-debt-id');
+        const remaining = parseFloat(recordBtn.getAttribute('data-remaining') || '0');
+        document.getElementById('recordPaymentRemainingLine').textContent = `${i18n.remainingBalance}: €${remaining.toFixed(2)}`;
+        const amountInput = document.getElementById('recordPaymentAmount');
+        amountInput.value = remaining.toFixed(2);
+        amountInput.max = remaining;
+        document.getElementById('recordPaymentCash').checked = true;
+        document.getElementById('recordPaymentError').style.display = 'none';
+        recordPaymentModal.show();
+        return;
+      }
+
+      // --- Payment History ---
+      const historyBtn = e.target.closest('.payment-history-btn');
+      if (historyBtn) {
+        const debtId = historyBtn.getAttribute('data-debt-id');
+        paymentHistoryModalEl.dataset.currentDebtId = debtId;
+        loadPaymentHistory(debtId);
+        paymentHistoryModal.show();
+        return;
+      }
+    });
+
+    function submitMarkPaid(debtId, method, stripePaymentIntentId) {
+      fetch(`/schulden/redeem/${debtId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_method: method, stripe_payment_intent_id: stripePaymentIntentId || null }),
+      })
+        .then(response => response.json().catch(() => ({})).then(data => ({ ok: response.ok, data })))
+        .then(({ ok, data }) => {
+          if (ok) {
+            markPaidModal.hide();
+            refreshCurrentClient();
+          } else {
+            setDebtCardStatus('markPaidCardStatus', (data && data.error) || i18n.redeemError, true);
+            document.getElementById('confirmMarkPaidBtn').disabled = false;
+          }
+        })
+        .catch(() => {
+          setDebtCardStatus('markPaidCardStatus', i18n.redeemError, true);
+          document.getElementById('confirmMarkPaidBtn').disabled = false;
+        });
+    }
+
+    document.getElementById('confirmMarkPaidBtn').addEventListener('click', () => {
+      const debtId = markPaidModalEl.dataset.debtId;
+      const method = document.querySelector('input[name="markPaidMethod"]:checked').value;
+      const btn = document.getElementById('confirmMarkPaidBtn');
+
+      if (method !== 'card') {
+        submitMarkPaid(debtId, method, null);
+        return;
+      }
+
+      if (!window.StripeTerminalPay || !window.STRIPE_TERMINAL_CONFIG || !window.STRIPE_TERMINAL_CONFIG.configured) {
+        setDebtCardStatus('markPaidCardStatus', i18n.cardNotConfigured, true);
+        return;
+      }
+
+      const remaining = parseFloat(markPaidModalEl.dataset.remaining || '0');
+      btn.disabled = true;
+      StripeTerminalPay.collectPayment(remaining, { context: 'debt_payment', reference: debtId }, {
+        onStatus: (key) => setDebtCardStatus('markPaidCardStatus', stripeStatusLabels[key] || key, false),
+      }).then((paymentIntentId) => {
+        setDebtCardStatus('markPaidCardStatus', '', false);
+        submitMarkPaid(debtId, method, paymentIntentId);
+      }).catch((err) => {
+        setDebtCardStatus('markPaidCardStatus', i18n.cardErrorPrefix + ' ' + err.message, true);
+        btn.disabled = false;
+      });
+    });
+
+    function submitRecordPayment(debtId, method, amount, stripePaymentIntentId) {
+      const errBox = document.getElementById('recordPaymentError');
+      const btn = document.getElementById('confirmRecordPaymentBtn');
+      fetch(`/schulden/${debtId}/pay`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, payment_method: method, stripe_payment_intent_id: stripePaymentIntentId || null }),
+      })
+        .then(response => response.json().then(data => ({ ok: response.ok, data })))
+        .then(({ ok, data }) => {
+          if (ok && data.success) {
+            recordPaymentModal.hide();
+            refreshCurrentClient();
+          } else {
+            errBox.textContent = data.message || i18n.genericError;
+            errBox.style.display = 'block';
+            btn.disabled = false;
+          }
+        })
+        .catch(() => {
+          errBox.textContent = i18n.genericError;
+          errBox.style.display = 'block';
+          btn.disabled = false;
+        });
+    }
+
+    document.getElementById('confirmRecordPaymentBtn').addEventListener('click', () => {
+      const debtId = recordPaymentModalEl.dataset.debtId;
+      const method = document.querySelector('input[name="recordPaymentMethod"]:checked').value;
+      const amount = parseFloat(document.getElementById('recordPaymentAmount').value);
+      const errBox = document.getElementById('recordPaymentError');
+      const btn = document.getElementById('confirmRecordPaymentBtn');
+      errBox.style.display = 'none';
+      setDebtCardStatus('recordPaymentCardStatus', '', false);
+      if (!amount || amount <= 0) {
+        errBox.textContent = i18n.genericError;
+        errBox.style.display = 'block';
+        return;
+      }
+
+      if (method !== 'card') {
+        submitRecordPayment(debtId, method, amount, null);
+        return;
+      }
+
+      if (!window.StripeTerminalPay || !window.STRIPE_TERMINAL_CONFIG || !window.STRIPE_TERMINAL_CONFIG.configured) {
+        setDebtCardStatus('recordPaymentCardStatus', i18n.cardNotConfigured, true);
+        return;
+      }
+
+      btn.disabled = true;
+      StripeTerminalPay.collectPayment(amount, { context: 'debt_payment', reference: debtId }, {
+        onStatus: (key) => setDebtCardStatus('recordPaymentCardStatus', stripeStatusLabels[key] || key, false),
+      }).then((paymentIntentId) => {
+        setDebtCardStatus('recordPaymentCardStatus', '', false);
+        submitRecordPayment(debtId, method, amount, paymentIntentId);
+      }).catch((err) => {
+        setDebtCardStatus('recordPaymentCardStatus', i18n.cardErrorPrefix + ' ' + err.message, true);
+        btn.disabled = false;
+      });
+    });
+
+    function loadPaymentHistory(debtId) {
+      const body = document.getElementById('paymentHistoryBody');
+      body.innerHTML = `<tr><td colspan="5" class="text-center text-muted">${i18n.loading}</td></tr>`;
+      fetch(`/schulden/${debtId}/payments`)
+        .then(r => r.json())
+        .then(data => {
+          const payments = data.payments || [];
+          if (!payments.length) {
+            body.innerHTML = `<tr><td colspan="5" class="text-center text-muted">${i18n.noPayments}</td></tr>`;
+            return;
+          }
+          body.innerHTML = '';
+          payments.forEach(p => {
+            const methodLabel = p.payment_method === 'card' ? i18n.card : i18n.cash;
+            const recordedBy = p.recorded_by === 'system_backfill' ? i18n.systemBackfill : (p.recorded_by || '-');
+            const row = document.createElement('tr');
+            row.dataset.paymentId = p.id;
+            row.innerHTML = `
+              <td>${p.paid_at || '-'}</td>
+              <td class="payment-amount-cell">€${parseFloat(p.amount).toFixed(2)}</td>
+              <td class="payment-method-cell">${methodLabel}</td>
+              <td>${recordedBy}</td>
+              <td>
+                <button type="button" class="btn btn-sm btn-warning edit-payment-btn" title="${i18n.editPayment}"><i class="bi bi-pencil"></i></button>
+                {% if session.get('role') == 'admin' %}
+                <button type="button" class="btn btn-sm btn-danger delete-payment-btn" title="${i18n.deletePayment}"><i class="bi bi-trash"></i></button>
+                {% endif %}
+              </td>
+            `;
+            body.appendChild(row);
+          });
+        })
+        .catch(() => {
+          body.innerHTML = `<tr><td colspan="5" class="text-center text-danger">${i18n.loadError}</td></tr>`;
+        })
+        .finally(() => {
+          // Rows were injected after the shared data-table engine's initial
+          // scan — tell it to re-scan so sort/filter/pagination pick them up.
+          window.DataTableEnhancer && window.DataTableEnhancer.refresh(body.closest('table'));
+        });
+    }
+
+    document.getElementById('paymentHistoryBody').addEventListener('click', e => {
+      const row = e.target.closest('tr[data-payment-id]');
+      if (!row) return;
+      const paymentId = row.dataset.paymentId;
+
+      // --- Edit payment (inline amount/method) ---
+      const editBtn = e.target.closest('.edit-payment-btn');
+      if (editBtn) {
+        const amountCell = row.querySelector('.payment-amount-cell');
+        const methodCell = row.querySelector('.payment-method-cell');
+        const currentAmount = parseFloat(amountCell.textContent.replace('€', ''));
+        const currentMethod = methodCell.textContent.trim() === i18n.card ? 'card' : 'cash';
+
+        amountCell.innerHTML = `<input type="number" class="form-control form-control-sm" style="width:90px;display:inline-block;" value="${currentAmount.toFixed(2)}" min="0.01" step="0.01">`;
+        methodCell.innerHTML = `
+          <select class="form-select form-select-sm" style="width:110px;display:inline-block;">
+            <option value="cash" ${currentMethod === 'cash' ? 'selected' : ''}>${i18n.cash}</option>
+            <option value="card" ${currentMethod === 'card' ? 'selected' : ''}>${i18n.card}</option>
+          </select>`;
+        editBtn.innerHTML = `<i class="bi bi-check-lg"></i>`;
+        editBtn.classList.replace('edit-payment-btn', 'save-payment-btn');
+        editBtn.title = i18n.save;
+        return;
+      }
+
+      // --- Save edited payment ---
+      const saveBtn = e.target.closest('.save-payment-btn');
+      if (saveBtn) {
+        const newAmount = parseFloat(row.querySelector('.payment-amount-cell input').value);
+        const newMethod = row.querySelector('.payment-method-cell select').value;
+        fetch(`/schulden/payments/${paymentId}/edit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: newAmount, payment_method: newMethod }),
+        })
+          .then(r => r.json().then(data => ({ ok: r.ok, data })))
+          .then(({ ok, data }) => {
+            if (ok && data.success) {
+              loadPaymentHistory(paymentHistoryModalEl.dataset.currentDebtId);
+              refreshCurrentClient();
+            } else {
+              alert(data.message || i18n.genericError);
+            }
+          })
+          .catch(() => alert(i18n.genericError));
+        return;
+      }
+
+      // --- Delete payment ---
+      const deleteBtn = e.target.closest('.delete-payment-btn');
+      if (deleteBtn) {
+        if (!confirm(i18n.confirmDeletePayment)) return;
+        fetch(`/schulden/payments/${paymentId}/delete`, { method: 'POST' })
+          .then(r => r.json().then(data => ({ ok: r.ok, data })))
+          .then(({ ok, data }) => {
+            if (ok && data.success) {
+              loadPaymentHistory(paymentHistoryModalEl.dataset.currentDebtId);
+              refreshCurrentClient();
+            } else {
+              alert(data.message || i18n.genericError);
+            }
+          })
+          .catch(() => alert(i18n.genericError));
+      }
+    });
+  });
+
+</script>
+{% endblock %}

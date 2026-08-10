@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}{{ T.sellers_page_title }}{% endblock %}
+
+{% block content %}
+<h2>{{ T.sellers_page_title }}</h2>
+
+<a href="{{ url_for('add_seller') }}" class="btn btn-primary mb-3">
+  <i class="bi bi-person-plus-fill me-1"></i> {{ T.sellers_add_new }}
+</a>
+
+<form method="get" class="mb-3" id="sellerSearchForm">
+  <div class="input-group">
+    <span class="input-group-text"><i class="bi bi-search"></i></span>
+    <input type="text" name="q" class="form-control" placeholder="{{ T.sellers_search_placeholder }}"
+           value="{{ search_query or '' }}" autocomplete="off">
+    {% if search_query %}
+    <a href="{{ url_for('list_sellers') }}" class="btn btn-outline-secondary" title="{{ T.common_cancel }}">
+      <i class="bi bi-x-lg"></i>
+    </a>
+    {% endif %}
+  </div>
+</form>
+
+<table class="table table-bordered align-middle data-table"
+       data-search-placeholder="{{ T.sellers_search_placeholder }}">
+  <thead class="table-light">
+    <tr>
+      <th>{{ T.seller_username }}</th>
+      <th data-no-sort>{{ T.sellers_profile_image_label }}</th>
+      <th>{{ T.seller_salary }} (€)</th>
+      <th>{{ T.seller_activated }}</th>
+      <th data-no-sort>{{ T.common_actions }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for seller in sellers %}
+    <tr>
+      <td>{{ seller.username }}</td>
+      <td>
+        {% if seller.profile_img %}
+          <img src="{{ seller.profile_img }}" width="50" class="rounded" alt="{{ T.sellers_profile_image_label }}">
+        {% else %}
+          <span class="text-muted">{{ T.sellers_no_image }}</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if seller.is_self %}
+          <span class="text-muted" title="{{ T.seller_salary }} ausgeblendet">🔒 —</span>
+        {% else %}
+          {{ "%.2f"|format(seller.salary) if seller.salary is defined else "N/A" }}
+        {% endif %}
+      </td>
+      <td>{{ '✅' if seller.activated else '❌' }}</td>
+      <td class="d-flex gap-1 flex-wrap">
+
+        <!-- Edit Button -->
+        <a href="{{ url_for('edit_seller', username=seller.username) }}" class="btn btn-sm btn-warning" title="{{ T.common_edit }}">
+          <i class="bi bi-pencil-square"></i>
+        </a>
+
+        <!-- Delete Button -->
+        <form method="POST" action="{{ url_for('delete_seller', username=seller.username) }}" onsubmit="return confirm({{ T.sellers_confirm_delete | tojson }});">
+          <button class="btn btn-sm btn-danger" title="{{ T.common_delete }}">
+            <i class="bi bi-trash"></i>
+          </button>
+        </form>
+
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5">{{ T.sellers_none_found }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}{{ T.nav_home_chat }} - {{ T.platform_name }}{% endblock %}
+{% block page_title %}{{ T.nav_home_chat }}{% endblock %}
+
+{% block content %}
+<div class="hero-banner">
+  <div class="hero-banner-decor"></div>
+  <div class="hero-content">
+    <div>
+      <div class="hero-eyebrow">{{ T.platform_name }}</div>
+      <h1>{{ T.home_hero_title }}</h1>
+      <p>{{ T.home_hero_subtitle }}</p>
+    </div>
+    <a href="{{ url_for('admin_dashboard') if session.get('role') == 'admin' else url_for('seller_dashboard') }}"
+       class="btn btn-outline-light btn-sm">
+      <i class="bi bi-grid"></i> {{ T.home_go_dashboard }}
+    </a>
+  </div>
+</div>
+
+<div class="home-chat-shell">
+  <!-- Same markup/IDs as the floating widget in base.html, so assistant.js
+       drives this one exactly the same way — it's just laid out inline as
+       the page's main content instead of a fixed-position overlay. A tiny
+       script at the bottom force-opens it since there's no separate
+       launcher button to click here. -->
+  <button class="assistant-launcher assistant-orb-launcher" id="assistantLauncher" style="display:none;" aria-label="Assistent öffnen">
+    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="" class="assistant-orb assistant-logo-orb">
+    <span class="assistant-ping"></span>
+  </button>
+
+  <div class="assistant-panel" id="assistantPanel" dir="ltr" data-site-lang="{{ site_lang }}">
+    <div class="assistant-header assistant-header-glass">
+      <button id="assistantBack" class="assistant-back-btn" aria-label="Back" style="display:none;">
+        <i class="bi bi-arrow-left"></i>
+      </button>
+      <div class="title">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="" class="assistant-orb assistant-logo-orb">
+        <div class="title-block">
+          <span id="assistantTitle">Assistent</span>
+          <span class="subtitle">{{ T.platform_name }}</span>
+        </div>
+      </div>
+      <div class="assistant-lang-switch" id="headerLangSwitch">
+        <button type="button" class="assistant-lang-chip" data-lang="de" title="Deutsch">🇩🇪</button>
+        <button type="button" class="assistant-lang-chip" data-lang="en" title="English">🇬🇧</button>
+        <button type="button" class="assistant-lang-chip" data-lang="ar" title="العربية">🇸🇦</button>
+      </div>
+      <button id="assistantNewChatBtn" class="assistant-icon-btn" aria-label="New chat" title="New chat"><i class="bi bi-plus-lg"></i></button>
+      <button id="assistantHistoryBtn" class="assistant-icon-btn" aria-label="History" title="History"><i class="bi bi-clock-history"></i></button>
+      <button id="assistantClose" aria-label="Schließen" style="display:none;"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="assistant-body" id="assistantBody"></div>
+    <form class="assistant-inputbar" id="assistantInputForm" autocomplete="off">
+      <button type="button" class="assistant-mic-btn" id="assistantMicBtn" aria-label="Voice input">
+        <i class="bi bi-mic-fill"></i>
+      </button>
+      <input type="text" id="assistantTextInput" class="assistant-text-input" placeholder="…" inputmode="text">
+      <button type="submit" class="assistant-send-btn" aria-label="Send"><i class="bi bi-send-fill"></i></button>
+    </form>
+  </div>
+</div>
+
+{% if stripe_terminal.configured %}
+<!-- Card reader support for the assistant's Purchase Order / Sell flow -->
+<script src="https://js.stripe.com/terminal/v1/"></script>
+<script src="{{ url_for('static', filename='js/stripe-terminal.js') }}"></script>
+<script>window.STRIPE_TERMINAL_CONFIG = {{ stripe_terminal | tojson }};</script>
+{% endif %}
+
+<!-- assistant.js is only loaded once per page (base.html skips it here via
+     request.endpoint != 'index'), so this page loads it itself.
+     IMPORTANT: The role/permissions vars must be set BEFORE assistant.js
+     loads, because assistant.js reads them from window at init time to
+     decide which menu options to show. base.html normally sets these for
+     the floating widget, but that whole section is excluded when
+     request.endpoint == 'assistant_home'. -->
+<script>
+  window.ASSISTANT_ROLE = {{ session.get('role', 'seller') | tojson }};
+  window.ASSISTANT_PERMS = {{ seller_categories | list | tojson }};
+  window.ASSISTANT_CAN_KASSE = {{ can_kasse | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/assistant.js') }}"></script>
+<script>
+  (function () {
+    // Force the panel open immediately — on every other page this happens
+    // on launcher click, here there's nothing to click.
+    var launcher = document.getElementById('assistantLauncher');
+    var panel = document.getElementById('assistantPanel');
+    if (launcher && panel && !panel.classList.contains('open')) {
+      launcher.click();
+    }
+
+    var group = document.getElementById('headerLangSwitch');
+    if (!group) return;
+    var current = localStorage.getItem('assistantLang') || panel.dataset.siteLang || 'de';
+    group.querySelectorAll('[data-lang]').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-lang') === current);
+    });
+    group.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-lang]');
+      if (!btn) return;
+      var lang = btn.getAttribute('data-lang');
+      if (lang === current) return;
+      localStorage.setItem('assistantLang', lang);
+      location.reload();
+    });
+  })();
+</script>
+{% endblock %}
+
